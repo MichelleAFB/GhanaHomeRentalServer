@@ -5,8 +5,8 @@ const bcrypt = require("bcryptjs");
 
 const mysql = require("mysql");
 const cors = require("cors");
-const {new_db_config}=require("../config/newdb")
-var {db}=require("../config/newdb")
+const {db_config}=require("../config/db")
+//var {db}=require("../config/newdb")
 
 
 
@@ -22,12 +22,12 @@ var corsOptions = {
 
 router.use(cors(corsOptions))
 
+/*
 
-
-
+var db
 function handleDisconnect() {
   if (db == null || db.state == "disconnected") {
-    db = mysql.createConnection(new_db_config); // Recreate the connection, since
+    db = mysql.createConnection(db_config); // Recreate the connection, since
     // the old one cannot be reused.
     db.connect(function (err) {
       // The server is either down
@@ -53,6 +53,7 @@ function handleDisconnect() {
 }
 
 handleDisconnect(db);
+*/
 
 
 

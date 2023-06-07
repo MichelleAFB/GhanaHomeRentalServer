@@ -8,7 +8,35 @@ const mysql = require("mysql");
 const cors = require("cors");
 const new_db_config=require("../../config/newdb")
 const bodyParser = require("body-parser");
-var {db}=require("../../config/newdb")
+var {db}=require("../../config/db")
+const mongoose=require("mongoose")
+const uniqueValidator = require('mongoose-unique-validator')
+
+
+const connectdb = async () => {
+  try {
+    console.log("hello");
+    const conn = await mongoose.connect(
+      "mongodb+srv://MAB190011:Mirchoella22@atlascluster.xdodz.mongodb.net/ghanahomestay?retryWrites=true&w=majority",
+      {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      }
+    );
+    return conn
+    console.log(`MONGO DB connected: ${conn.connection.host}`);
+  } catch (err) {
+    //console.log(err.stack);
+    // process.exit(1)
+  }
+};
+var dbmongo
+connectdb().then((conn)=>{
+  //console.log(conn)
+  dbmongo=conn.connection
+})
+
+
 router.use(bodyParser.json());
 var corsOptions = {
   origin: "*",
@@ -23,7 +51,12 @@ router.use(cors(corsOptions));
 
 function handleDisconnect() {
   if (db == null || db.state == "disconnected") {
-  db = mysql.createConnection(new_db_config); // R
+  db = mysql.createConnection(
+    {user:"root",
+    password:"",
+    host:'localhost',
+    port:'3306'}
+  ); // R
     console.log("------connection lost-----------")
     //ecreate the connection, since
     // the old one cannot be reused.

@@ -25,7 +25,7 @@ const db_config={
 */
 const db_config = mysql.createConnection({
   user:"root",
-  password:"Mirchoella22",
+  password:"Mirchoella",
   host:'localhost',
   port:'3306',
 

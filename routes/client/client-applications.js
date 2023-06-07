@@ -2,12 +2,39 @@ const express = require("express");
 const router = express.Router();
 const cookie = require("universal-cookie");
 const bcrypt = require("bcryptjs");
-const {new_db_config} = require("../../config/newdb");
+const {db_config} = require("../../config/db");
 const mysql = require("mysql");
 const cors = require("cors");
 const axios=require('axios')
-var {db}=require("../../config/newdb")
+var {db}=require("../../config/db")
 const bodyParser = require("body-parser");
+const mongoose=require("mongoose")
+const uniqueValidator = require('mongoose-unique-validator')
+const ApplicationOccupant=require("../../models/ApplicationOccupant")
+const Application=require("../../models/ApplicationOccupant")
+
+const connectdb = async () => {
+  try {
+    console.log("hello");
+    const conn = await mongoose.connect(
+      "mongodb+srv://MAB190011:Mirchoella22@atlascluster.xdodz.mongodb.net/ghanahomestay?retryWrites=true&w=majority",
+      {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      }
+    );
+    return conn
+    console.log(`MONGO DB connected: ${conn.connection.host}`);
+  } catch (err) {
+    //console.log(err.stack);
+    // process.exit(1)
+  }
+};
+var dbmongo
+connectdb().then((conn)=>{
+  //console.log(conn)
+  dbmongo=conn.connection
+})
 
 router.use(bodyParser.json());
 var corsOptions = {
@@ -21,7 +48,12 @@ router.use(cors(corsOptions));
 
 function handleDisconnect() {
   if (db == null || db.state == "disconnected") {
-  db = mysql.createConnection(new_db_config); // R
+  db = mysql.createConnection(
+    {user:"root",
+    password:"",
+    host:'localhost',
+    port:'3306'}
+  ); // R
     console.log("------connection lost-----------")
     //ecreate the connection, since
     // the old one cannot be reused.
@@ -69,6 +101,149 @@ const ad=[]
 console.log(ad.hasOwnProperty('length'))
 const add={child:[]}
 console.log(add.child.hasOwnProperty("length"))
+
+router.post("/",(req,res)=>{
+
+  
+  console.log(req.body)
+  const application =req.body
+  const children=req.body.children
+  const adults=req.body.adults
+  console.log(req.body.adults.length)
+  const st=req.body.startDate.split(" ")
+  const ed=req.body.endDate.split(" ")
+  const startDate=st[0]+" "+st[1]+" "+st[2]+" "+st[3]
+  const endDate=ed[0]+" "+ed[1]+" "+ed[2]+" "+ed[3]
+  console.log(req.body)
+  var applicant
+ 
+  if(adults.length>0){
+    if(adults.length>1){
+      adults.map((a)=>{
+        if(a.association=="applicant"){
+        applicant=a
+        }
+      })
+
+    }
+  
+  }else{
+    applicant=adults[0]
+  }
+
+  const prom=new Promise((resolve,reject)=>{
+
+
+    //retrieve applicant info
+    db.query("select * from ghanahomestay.users where firstname=? && lastname=? && email=?",[applicant.firstname,applicant.lastname,applicant.email],(err,results)=>{
+      if(err){
+        console.log(err)
+      }
+      if(results){
+        console.log("found applicant")
+        console.log(results)
+        const user=results[0]
+          const cDate=new Date()
+          var aLength=0
+          var cLength=0
+          console.log(children==null)
+       if(adults.hasOwnProperty("length")){
+         aLength=adults.length
+         console.log("lerngth true")
+
+       }
+       if(children!=null){
+        if(children.hasOwnProperty("length")==true){
+          cLength=children.length
+        
+        }
+       }
+          const currDate=cDate.toString().substring(0,15)
+          console.log(currDate)
+          var status="APPLIED"
+          db.query("insert into ghanahomestay.applications (firstname,middlename,lastname,phone,email,stay_start_date,stay_end_date,no_adults,no_children,dateReceived,notify_admin_message) values (?,?,?,?,?,?,?,?,?,?,?)",[user.firstname,req.body.middleName,user.lastname,user.phone,user.email,startDate,endDate,aLength,cLength,currDate,status],(err1,results1)=>{
+            if(err1){
+              console.log(err1)
+            }
+            console.log(results1)
+            console.log(results1.affectedRows)
+            const prom1=new Promise((resolve1,reject1)=>{
+
+              adults.forEach((a)=>{
+                db.query("insert into ghanahomestay.application_occupants (firstname,lastname,age,email,association,application_id) values (?,?,?,?,?,?)",[a.firstname,a.lastname,a.age,a.email,a.association,results1.insertId],(err3,results3)=>{
+                  if(err3){
+                    console.log(err3)
+                  }
+                  console.log(results3)
+                })
+            })
+            resolve1()
+            })
+
+            prom1.then(()=>{
+
+                if(results1.affectedRows>0){
+              db.query("select * from ghanahomestay.applications where email=? && firstname=? && lastname=? && phone=?",[user.email,user.firstname,user.lastname,user.phone],(err2,results2)=>{
+                if(err2){
+                  console.log(err2)
+                }
+                else{
+                  
+                  const prom2=new Promise((resolve2,reject2)=>{
+                    if( children!=null){
+                    if(children.length>1){
+                      children.map((c)=>{
+                        db.query("insert into ghanahomestay.application_occupants (firstname,lastname,age,association,application_id,child) values (?,?,?,?,?,1)",[c.firstname,c.lastname,c.age,c.association,results1.insertId],(err4,results4)=>{
+                          console.log(results4)
+                          if(err4){
+                            console.log(err4) 
+                          }
+  
+                        })
+                      })
+                    }
+                    resolve2()
+                  }
+                  if(children!=null){
+                    if(children.length==1){
+                     const c=children[0]
+                        db.query("insert into ghanahomestay.application_occupants (firstname,lastname,age,association,application_id,child) values (?,?,?,?,?,1)",[c.firstname,c.lastname,c.age,c.association,results1.insertId],(err4,results4)=>{
+                          console.log(results4)
+                          if(err4){
+                            console.log(err4) 
+                          }
+  
+                        })
+                      
+                    }
+                    resolve2()
+                  }if(children==null){
+                    resolve2()
+                  }
+                  
+                  })
+                
+                  prom2.then(()=>{
+                    res.json({success:true,applications:results2})
+                  }) 
+                  
+                }
+              })
+            }else{
+              res.json({success:false})
+            }
+            
+            })
+           
+          
+          })
+    
+        
+      }
+    })
+  })
+
+})
 router.post("/create-application",(req,res)=>{
 
   console.log(req.body)
