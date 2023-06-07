@@ -2,17 +2,18 @@ const express = require("express");
 const router = express.Router();
 const cookie = require("universal-cookie");
 const bcrypt = require("bcryptjs");
-//const db_config = require("../config/db");
+
 const mysql = require("mysql");
 const cors = require("cors");
-var {db}=require("../config/newdb")
-var {db_config}=require("../config/db")
+const bodyParser = require("body-parser");
+const {User}=require("../models/User")
+const{Application}=require("../models/Application")
 const mongoose=require("mongoose")
-const uniqueValidator = require('mongoose-unique-validator')
+const {ApplicationOccupant}=require("../models/ApplicationOccupant");
+const { ApplicationReviewImage } = require("../models/ApplicationReviewImages");
 
 const connectdb = async () => {
   try {
-    console.log("hello");
     const conn = await mongoose.connect(
       "mongodb+srv://MAB190011:Mirchoella22@atlascluster.xdodz.mongodb.net/ghanahomestay?retryWrites=true&w=majority",
       {
@@ -33,7 +34,7 @@ connectdb().then((conn)=>{
   dbmongo=conn.connection
 })
 
-const bodyParser = require("body-parser");
+
 
 router.use(bodyParser.json());
 var corsOptions = {
@@ -45,45 +46,16 @@ router.use(cors(corsOptions))
 
 
 
-
+var db
 
 function handleDisconnect() {
   if (db == null || db.state == "disconnected") {
-    db = mysql.createConnection(
+    console.log("restarting getting db connection")
+    db = mysql.createConnection(  
       {user:"root",
-      password:"",
-      host:'localhost',
-      port:'3306'}
-    ); // Recreate the connection, since
-    // the old one cannot be reused.
-    db.connect(function (err) {
-      // The server is either down
-      if (err) {
-        // or restarting (takes a while sometimes).
-        console.log("error when connecting to db:", err);
-        setTimeout(handleDisconnect, 2000); // We introduce a delay before attempting to reconnect,
-      } // to avoid a hot loop, and to allow our node script to
-    }); // process asynchronous requests in the meantime.
-    // If you're also serving http, display a 503 error.
-    db.on("error", function (err) {
-      console.log("db error", err);
-      if (err.code === "PROTOCOL_CONNECTION_LOST") {
-        // Connection to the MySQL server is usually
-        handleDisconnect(); // lost due to either server restart, or a
-      } else {
-        // connnection idle timeout (the wait_timeout
-       // throw err; // server variable configures this)
-       console.log(":mongo failed")
-      }
-    });
-  }
-}
-
-handleDisconnect(db);
-/*
-function handleDisconnect() {
-  if (db == null || db.state == "disconnected") {
-    db = mysql.createConnection(db_config); // Recreate the connection, since
+    password:"",
+    host:'localhost',
+    port:'3306'}); // Recreate the connection, since
     // the old one cannot be reused.
     db.connect(function (err) {
       // The server is either down
@@ -110,19 +82,7 @@ function handleDisconnect() {
 
 handleDisconnect();
 
-var db;
-*/
 
-var db= mysql.createConnection({
-  user:"bd4e78905dad5a",
-  host:'us-cdbr-east-06.cleardb.net',
-  password:"5e037d99",
-  database:"heroku_ad7f7c4ee7bc6b0"
-}) 
-
-db.connect(()=>{
-  console.log("conecteddddd")
-})
 
 router.get("/",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -137,7 +97,13 @@ router.post("/sign-in-admin",(req,res)=>{
 
   const email=req.body.email
   
-  const prom=new Promise((resolve,reject)=>{
+  const prom=new Promise(async(resolve,reject)=>{
+
+    const user=await User.find({"admin":1},{"email":email})
+
+    if(user!=null){
+      const hash=user.hash
+    }
 
     db.query("select count(*) as adminCount from ghanahomestay.users where admin=1 && email=?",email,(errCount,resultsCount)=>{
       if(errCount){
@@ -170,7 +136,107 @@ router.post("/sign-in-admin",(req,res)=>{
  
   })
 })
+router.get("/sqltomongo",(req,res)=>{
+  db.query("select * from ghanahomestay.users ",(err,results)=>{
+    if(err){
+      console.log(err)
+    }else{
+      console.log(results)
+      results.map(async(a)=>{
+        const user=new User({
+          firstname:a.firstname,
+          lastname:a.lastname,
+          phone:a.phone,
+          email:a.email,
+          hash:a.hash,
+          dateCreated:a.dateCreated,
+          admin:a.admin
+        })
+        const saved=await user.save()
+        console.log(saved)
+      })
+    }
+  })
+})
 
+router.get("/applications",(req,res)=>{
+  db.query("select * from ghanahomestay.applications",(err,results)=>{
+    results.map(async(u)=>{
+      const application=new Application({
+        firstname:u.firstname,
+        middlename:u.middlename,
+        lastname:u.lastname,
+        phone:u.phone,
+        email:u.email,
+        stay_start_date:u.stay_start_date,
+        stay_end_date:u.stay_end_date,
+        no_adults:u.no_adults,
+        no_children:u.no_children,
+        dateReceived:u.dateReceived,
+        notify_admin_message:u.notify_admin_message,
+        no_occupants:u.no_occupants,
+        notify_applicant:u.notify_applicant,
+        notify_admin:u.notify_admin,
+        application_status:u.application_status,
+        approved:u.approved,
+        dateApproved:u.dateApproved,
+        confirmedApproved:u.confirmedApproved,
+        dateReserved:u.dateReserved,
+        dateDenied:u.dateDenied,
+        datePaymentDue:u.datePaymentDue,
+        notify_admin_message:u.notify_admin_message,
+        notify_applicant_message:u.notify_applicant_message,
+        datePaid:u.datePaid,
+        currentlyOccupied:u.currentlyOccupied,
+        checkoutTimeout:u.checkoutTimeout,
+        review:u.review,
+        paymentSessionUrl:u.paymentSessionUrl,
+        checkedIn:u.checkedIn,
+        timeCheckedIn:u.timeCheckedIn
+      })
+      const saved=await application.save()
+
+      db.query("select * from ghanahomestay.application_review_images where application_id=?",u.id,(err1,results1)=>{
+        if(err1){
+          console.log(err1)
+        }else{
+          results1.map(async(r)=>{
+            const review=new ApplicationReviewImage({
+              application_id:saved.id,
+              img_url:r.img_url
+            })
+          })
+        }
+      })
+
+   
+      db.query("select * from ghanahomestay.application_occupants where application_id=?",u.id,(err1,results1)=>{
+        if(err1){
+          if(err1){
+            console.log(err1)
+
+          }else{
+            results1.map(async(o)=>{
+              const occupant=new ApplicationOccupant({
+                firstname:o.firstname,
+                lastname:o.lastname,
+                age:o.age,
+                association:o.association,
+                application_id:saved.id,
+                email:o.email,
+                child:o.child
+              })
+
+              const occ=await occupant.save()
+
+            })
+          }
+        }
+      })
+      console.log(saved)
+    })
+  })
+})
 //args:email, password
 router.post("/sign-in-user",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");

@@ -8,7 +8,7 @@ const cors = require("cors");
 var {db}=require("../config/newdb")
 var {db_config}=require("../config/db")
 const bodyParser = require("body-parser");
-const User=require("../models/User")
+const {User}=require("../models/User")
 const mongoose=require("mongoose")
 
 

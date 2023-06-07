@@ -1,7 +1,8 @@
 const mongoose=require("mongoose")
 const uniqueValidator = require('mongoose-unique-validator')
 
-const applicationOccupantSchema=new mongoose.Schema({
+
+const applicationGuestsSchema=new mongoose.schema({
   firstname:{
     type:String,
     required:true
@@ -12,11 +13,15 @@ const applicationOccupantSchema=new mongoose.Schema({
   },
   age:{
     type:Number,
-    required:true
+    required:false
   },
   association:{
     type:String,
-    requried:true
+    required:false
+  },
+  occupant_id:{
+    type:String,
+    required:true
   },
   application_id:{
     type:String,
@@ -25,14 +30,8 @@ const applicationOccupantSchema=new mongoose.Schema({
   email:{
     type:String,
     required:false
-  },
-  child:{
-    type:Number,
-    default:0,
-    required:false
-
   }
 })
 
-const ApplicationOccupant=mongoose.model("application_occupants",applicationOccupantSchema)
-module.exports={ApplicationOccupant}
+const ApplicationGuest=mongoose.model("application_guests",applicationGuestsSchema)
+module.exports={ApplicationGuest}

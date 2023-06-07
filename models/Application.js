@@ -3,16 +3,17 @@ const mongoose=require("mongoose")
 const uniqueValidator = require('mongoose-unique-validator')
 
 const applicationSchema=new mongoose.Schema({
+ 
   firstname:{
     type:String,
     required:true,
   },
   middlename:{
-    type:Number,
+    type:String,
     required:false,
   },
   lastname:{
-    type:Number,
+    type:String,
     required:false,
   },
   phone:{
@@ -132,7 +133,7 @@ const applicationSchema=new mongoose.Schema({
   }
 })
 
-applicationsSchema.plugin(uniqueValidator)
+applicationSchema.plugin(uniqueValidator)
 
-const Application=mongoose.model("Application",applicationSchema)
+const Application=mongoose.model("Applications",applicationSchema)
 module.exports={Application}

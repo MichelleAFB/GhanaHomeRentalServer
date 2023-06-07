@@ -132,8 +132,6 @@ router.post("/",(req,res)=>{
   }
 
   const prom=new Promise((resolve,reject)=>{
-
-
     //retrieve applicant info
     db.query("select * from ghanahomestay.users where firstname=? && lastname=? && email=?",[applicant.firstname,applicant.lastname,applicant.email],(err,results)=>{
       if(err){
