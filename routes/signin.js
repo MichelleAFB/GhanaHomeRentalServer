@@ -11,6 +11,10 @@ const{Application}=require("../models/Application")
 const mongoose=require("mongoose")
 const {ApplicationOccupant}=require("../models/ApplicationOccupant");
 const { ApplicationReviewImage } = require("../models/ApplicationReviewImages");
+const { ApplicationGuest } = require("../models/ApplicationGuests");
+const { ApplicationRestrictedIndividual } = require("../models/ApplicationRestrictedIndividuals");
+const { BookedDate } = require("../models/BookedDates");
+const {Maintenanace}=require("../models/Maintenance")
 
 const connectdb = async () => {
   try {
@@ -205,9 +209,43 @@ router.get("/applications",(req,res)=>{
               application_id:saved.id,
               img_url:r.img_url
             })
+            const rev=await review.save()
           })
         }
       })
+
+      db.query("select * from ghanahomestay.booked_dates where application_id=?",u.id,(err1,results1)=>{
+        if(err1){
+          console.log(err1)
+        }else{
+          results1.map(async(r)=>{
+            const booked=new BookedDate({
+              application_id:saved.id,
+              date:r.date
+            })
+            const boo=await booked.save()
+          })
+        }
+      })
+
+      db.query("select * from ghanahomestay.maintenance where application_id=?",u.id,(err1,results1)=>{
+        if(err1){
+          console.log(err1)
+        }else{
+          results1.map(async(r)=>{
+            const maintenance=new Maintenance({
+              application_id:saved.id,
+              mechanism:r.mechanism,
+              dateRecieved:r.dateRecieved,
+              message:r.message,
+              dateResolved:r.dataResolved,
+              status:r.status,
+            })
+            const main=await maintenance.save()
+          })
+        }
+      })
+
 
    
       db.query("select * from ghanahomestay.application_occupants where application_id=?",u.id,(err1,results1)=>{
@@ -228,6 +266,42 @@ router.get("/applications",(req,res)=>{
               })
 
               const occ=await occupant.save()
+              db.query("select * from ghanahomestay.application_restricted_individuals where occupant_id=?",o.id,(err2,results2)=>{
+                if(err2){
+                  console.log(err2)
+                }else{
+                  results2.map(async(g)=>{
+                        const restricted=new ApplicationRestrictedIndividual({
+                          firstname:g.firstname,
+                          lastname:g.lastname,
+                          occupant_id:occ.id,
+                          phone:g.phone,
+                          email:g.email,
+                          application_id:saved.id,
+                          img_url:g.img_url
+                        })
+                        const restr=await restricted.saved()
+                  })
+                }
+              })
+
+              db.query("select * from ghanahomestay.application_guests where occupant_id=?",o.id,(err2,results2)=>{
+                if(err2){
+                  console.log(err2)
+                }else{
+                  results2.map(async(g)=>{
+                        const guest=new ApplicationGuest({
+                          firstname:g.firstname,
+                          lastname:g.lastname,
+                          occupant_id:occ.id,
+                          phone:g.phone,
+                          email:g.email,
+                          application_id:saved.id
+                        })
+                        const gue=await guest.saved()
+                  })
+                }
+              })
 
             })
           }

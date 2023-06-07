@@ -28,5 +28,5 @@ const applicationRestrictedIndividualsSchema=new mongoose.Schema({
   }
 })
 
-const ApplicationRestrictedIndividual=mongoose.model("application_restricted_individuals",ApplicationRestrictedIndividualsSchema)
+const ApplicationRestrictedIndividual=mongoose.model("application_restricted_individuals",applicationRestrictedIndividualsSchema)
 module.exports={ApplicationRestrictedIndividual}

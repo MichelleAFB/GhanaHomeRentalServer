@@ -2,36 +2,32 @@ const mongoose=require("mongoose")
 const uniqueValidator = require('mongoose-unique-validator')
 
 
-const applicationGuestsSchema=new mongoose.Schema({
-  firstname:{
+const maintenanceSchema=new mongoose.Schema({
+  mechanism:{
     type:String,
     required:true
   },
-  lastname:{
+  message:{
     type:String,
     required:true
   },
-  age:{
-    type:Number,
-    required:false
-  },
-  association:{
+  dateRecieved:{
     type:String,
     required:false
   },
-  occupant_id:{
+  status:{
+    type:String,
+    required:false
+  },
+  dateResolved:{
     type:String,
     required:true
   },
   application_id:{
     type:String,
     required:true
-  },
-  email:{
-    type:String,
-    required:false
   }
 })
 
-const ApplicationGuest=mongoose.model("application_guests",applicationGuestsSchema)
-module.exports={ApplicationGuest}
+const Maintenance=mongoose.model("maintence",maintenanceSchema)
+module.exports={Maintenance}
