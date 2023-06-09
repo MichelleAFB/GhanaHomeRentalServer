@@ -70,7 +70,7 @@ function handleDisconnect() {
     }
   });
 }
-handleDisconnect();
+//handleDisconnect();
 
 
 

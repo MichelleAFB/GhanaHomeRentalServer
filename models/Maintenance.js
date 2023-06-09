@@ -21,7 +21,7 @@ const maintenanceSchema=new mongoose.Schema({
   },
   dateResolved:{
     type:String,
-    required:true
+    required:false
   },
   application_id:{
     type:String,

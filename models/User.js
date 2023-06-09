@@ -32,6 +32,18 @@ const userSchema=new mongoose.Schema({
     type:Number,
     required:false,
     default:0
+  },
+  root:{
+    type:Number,
+    required:false,
+    default:0
+  
+  },
+  admin_id:{
+    type:Number,
+    required:false,
+    default:0
+  
   }
 
 })

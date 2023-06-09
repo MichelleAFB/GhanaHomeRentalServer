@@ -84,7 +84,7 @@ function handleDisconnect() {
   }
 }
 
-handleDisconnect();
+//handleDisconnect();
 
 
 

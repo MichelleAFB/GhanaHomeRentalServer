@@ -10,8 +10,12 @@ var {db}=require("../../config/db")
 const bodyParser = require("body-parser");
 const mongoose=require("mongoose")
 const uniqueValidator = require('mongoose-unique-validator')
-const ApplicationOccupant=require("../../models/ApplicationOccupant")
-const Application=require("../../models/ApplicationOccupant")
+
+const { User } = require("../../models/User");
+const {Application}=require("../../models/Application")
+const {ApplicationOccupant}=require("../../models/ApplicationOccupant");
+const { Console } = require("winston/lib/winston/transports");
+
 
 const connectdb = async () => {
   try {
@@ -81,7 +85,7 @@ function handleDisconnect() {
   }
 }
 
-handleDisconnect();
+//handleDisconnect();
 
 
 
@@ -243,38 +247,140 @@ router.post("/",(req,res)=>{
 
 })
 router.post("/create-application",(req,res)=>{
-
-  console.log(req.body)
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  
   const application =req.body
   const children=req.body.children
   const adults=req.body.adults
-  console.log(req.body.adults.length)
   const st=req.body.startDate.split(" ")
   const ed=req.body.endDate.split(" ")
   const startDate=st[0]+" "+st[1]+" "+st[2]+" "+st[3]
   const endDate=ed[0]+" "+ed[1]+" "+ed[2]+" "+ed[3]
-  console.log(req.body)
   var applicant
- 
-  if(adults.length>0){
-    if(adults.length>1){
-      adults.map((a)=>{
-        if(a.association=="applicant"){
-        applicant=a
-        }
-      })
-
-    }
+ var user
+ console.log(req.body)
   
-  }else{
-    applicant=adults[0]
-  }
 
-  const prom=new Promise((resolve,reject)=>{
+  const prom=new Promise(async(resolve,reject)=>{
+
+
+    const applicant=adults[0]
+    console.log(applicant)
+    user= await User.find({
+     $and:[
+       {"email":applicant.email}
+     ]
+    })
+    user=user[0]
+
+    console.log("\n\n\n\n")
+    console.log(user)
+    if(user!=null){
+      console.log("user not null")
+      console.log("found applicant")
+     
+        const cDate=new Date()
+        const currDate=cDate.toString().substring(0,15)
+        var aLength=0
+        var cLength=0
+        console.log(children==null)
+     if(adults.hasOwnProperty("length")){
+       aLength=adults.length
+       console.log("lerngth true")
+
+     }
+     if(children!=null){
+      if(children.hasOwnProperty("length")==true){
+        cLength=children.length
+      }
+    }
+    var start=req.body.startDate.toString()
+    var end=req.body.endDate.toString()
+    const application=new Application({
+      firstname:user.firstname,
+      middlename:user.middlename,
+      lastname:user.lastname,
+      phone:user.phone,
+      email:user.email,
+      stay_start_date:start.substring(0,15),
+      stay_end_date:end.substring(0,15),
+      no_adults:aLength,
+      no_children:cLength,
+      dateReceived:currDate,
+      notify_admin_message:"",
+      no_occupants:cLength+aLength,
+      notify_applicant:0,
+      notify_admin:1,
+      application_status:"APPLIED",
+      approved:0,
+      dateApproved:"",
+      confirmedApproved:0,
+      dateReserved:"",
+      dateDenied:"",
+      datePaymentDue:"",
+      notify_admin_message:"",
+      notify_applicant_message:"",
+      datePaid:"",
+      currentlyOccupied:"",
+      checkoutTimeout:"",
+      review:"",
+      paymentSessionUrl:"",
+      checkedIn:"",
+      timeCheckedIn:""
+    })
+    const saved=await application.save()
+    var adultSaved
+    var childSaved
+    adults.map(async(o)=>{
+
+      const adult=new ApplicationOccupant({
+        firstname:o.firstname,
+        lastname:o.lastname,
+        age:o.age,
+        association:o.association,
+        application_id:saved.id,
+        email:o.email,
+        child:0
+      })
+    adultSaved=await adult.save()
+    })
+    if(cLength>0){
+      children.map(async(o)=>{
+        const child=new ApplicationOccupant({
+          firstname:o.firstname,
+          lastname:o.lastname,
+          age:o.age,
+          association:o.association,
+          application_id:saved.id,
+          email:o.email,
+          child:1
+        })
+       childSaved=await child.save()
+      })
+    }
+   if(cLength>0){
+    if(childSaved!=null){
+      res.json({success:true,application:application})
+    }
+   }else{
+    if(adultSaved!=null){
+      res.json({success:true,application:application})
+    }
+   }
+  }else{
+    res.json({success:false,message:"no account found"})
+  }
+  })
+})
+   
+
+
+
+  
 
 
     //retrieve applicant info
-    db.query("select * from ghanahomestay.users where firstname=? && lastname=? && email=?",[applicant.firstname,applicant.lastname,applicant.email],(err,results)=>{
+   /* db.query("select * from ghanahomestay.users where firstname=? && lastname=? && email=?",[applicant.firstname,applicant.lastname,applicant.email],(err,results)=>{
       if(err){
         console.log(err)
       }
@@ -380,62 +486,43 @@ router.post("/create-application",(req,res)=>{
         
       }
     })
-  })
+    */
+  
  
 
-})
 
 
-//get all client applications for client
+
+//get all client applications
 router.get("/get-all-applications/:firstname/:lastname/:email",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
-  console.log("get all apps")
-  console.log(req.params)
-   const applications=[]
-  const prom=new Promise((resolve,reject)=>{
-
-    db.query("select count(*) as appCount from ghanahomestay.applications where firstname=? && lastname =? && email=?",[req.params.firstname,req.params.lastname,req.params.email],(errCount,resultsCount)=>{
-
-      const appCount=Object.values(JSON.parse(JSON.stringify(resultsCount)))
-      const count=appCount[0].appCount
-      console.log(count)
-      if(count>0){
-  
-        db.query("select * from ghanahomestay.applications where firstname=? && lastname =? && email=?",[req.params.firstname,req.params.lastname,req.params.email],(err,results)=>{
-          if(err){
-            console.log(err)
-          }
-          
-          results.map((r)=>{
-            console.log(r)
-            db.query("select * from ghanahomestay.application_occupants where application_id=?",r.id,(err1,results1)=>{
-              if(err1){
-                console.log(err1)
-              }
-              console.log(results1)
-              applications.push({application:r,occupants:results1})
-             
-            })
-          }) 
-          setTimeout(()=>{
-            resolve()
-          },1000)
-        
-        })
-       
-      }
+   
+   const prom=new Promise(async(resolve,reject)=>{
+const apps=[]
+  const applications=await Application.find({
+      $and:[
+        {"firstname":req.params.firstname},
+        {"email":req.params.email},
+        {"lastname":req.params.lastname}
+      ]
+  })
+  var i=0
+  applications.map(async(r)=>{
+    const occ= await ApplicationOccupant.find({
+      $and:[{"application_id":r.id}]
     })
+    apps.push({application:r,occupants:occ})
+    if(i==applications.length-1){
+      res.json({success:true,applications:apps,no_applications:apps})
+    }
+    i++
   })
 
-  prom.then(()=>{
-    console.log(applications)
-    console.log("here")
-    res.json({success:true,no_applications:applications.length,applications:applications})
-
-  })
-
+   })
 })
+
+
 
 router.get("/application/:id",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -458,7 +545,7 @@ router.get("/application/:id",(req,res)=>{
   })
 })
 
-
+/*
 router.get("/getActiveStatus/:id",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
@@ -524,7 +611,118 @@ router.get("/getActiveStatus/:id",(req,res)=>{
     }
   })
 })
+*/
 
+router.get("/getActiveStatus/:id",async(req,res)=>{
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  
+  var app= await Application.find({
+    $and:[
+      {"id":req.params.id}
+    ]
+  })
+  app=app[0]
+  const cDate=new Date()
+            const currDate=cDate.toString().substring(0,15)
+            var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+            "Aug","Sep","Oct","Nov","Dec"];
+            var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+            var st=app.stay_start_date.split(" ")
+            var et=app.stay_end_date.split(" ")
+           //active Date starts 1day before
+            const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+            const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+            var activeDate=new Date(startDate)
+            var nextnext=activeDate.setDate(cDate.getDate()+1)
+            activeDate=new Date(nextnext)
+            console.log("today:"+activeDate.toString().substring(0,15))
+            console.log(app)
+            console.log(app.currentlyOccupied)
+            if(app.currentlyOccupied==1 && app.application_status=="CONFIRMED"){
+            
+              console.log("ALREADY SET")
+              res.json({success:true,currentlyOccupied:true})
+            }if((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED"){
+              console.log(app.stay_start_date+" "+activeDate.toString().substring(0,15))
+              console.log("ACTIVED")
+              const updated=await Application.update(
+                {"id":ObjectId(req.params.id)}
+                ,{
+                  $set:{
+                    "currentlyOccupied":1
+                  }
+                })
+                console.log(updated)
+          
+              
+            }if(!((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED") && !(app.currentlyOccupied==1 && app.application_status=="CONFIRMED")){
+              console.log("ELSE")
+              res.json({success:true,currentlyOccupied:false})
+             
+            }
+
+  /*db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
+    if(err){
+      console.log(err)
+    }else{
+      const appCount=Object.values(JSON.parse(JSON.stringify(results)))
+      const count=appCount[0].appCount
+      if(count>0){
+        db.query("select * from ghanahomestay.applications where id=?",req.params.id,(err1,results1)=>{
+          if(err1){
+            console.log(err1)
+          }else{
+            const app=results1[0]
+            const cDate=new Date()
+            const currDate=cDate.toString().substring(0,15)
+            var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+            "Aug","Sep","Oct","Nov","Dec"];
+            var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+            var st=app.stay_start_date.split(" ")
+            var et=app.stay_end_date.split(" ")
+           //active Date starts 1day before
+            const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+            const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+            var activeDate=new Date(startDate)
+            var nextnext=activeDate.setDate(cDate.getDate()+1)
+            activeDate=new Date(nextnext)
+            console.log("today:"+activeDate.toString().substring(0,15))
+            console.log(app)
+            console.log(app.currentlyOccupied)
+            if(app.currentlyOccupied==1 && app.application_status=="CONFIRMED"){
+            
+              console.log("ALREADY SET")
+              res.json({success:true,currentlyOccupied:true})
+            }if((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED"){
+              console.log(app.stay_start_date+" "+activeDate.toString().substring(0,15))
+              console.log("ACTIVED")
+               db.query("update ghanahomestay.applications set currentlyOccupied=1 where id=?",req.params.id,(err2,results2)=>{
+                
+                if(err2){
+                  console.log(err2)
+                }else{
+                  console.log(results2)
+                  console.log("UPDATE")
+                  res.json({success:true,currentlyOccupied:true})
+                }
+               })
+            }if(!((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED") && !(app.currentlyOccupied==1 && app.application_status=="CONFIRMED")){
+              console.log("ELSE")
+              res.json({success:true,currentlyOccupied:false})
+             
+            }
+          }
+        })
+
+      }else{
+        console.log("NO APPS")
+        res.json({success:false,message:"Application "+req.params.id+" does not exist"})
+      }
+
+    }
+  })
+  */
+})
 
 router.post("/release-reservation-due-to-unpaid/:id",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");

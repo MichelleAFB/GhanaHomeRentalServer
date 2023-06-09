@@ -11,6 +11,9 @@ const {db_config}=require("../../config/db")
 const bodyParser = require("body-parser");
 const mongoose=require("mongoose")
 const uniqueValidator = require('mongoose-unique-validator')
+const {Application} =require("../../models/Application");
+const { ApplicationOccupant } = require("../../models/ApplicationOccupant");
+const {BookedDate}=require('../../models/BookedDates')
 
 router.use(bodyParser.json());
 var corsOptions = {
@@ -77,18 +80,9 @@ function handleDisconnect() {
   }
 }
 
-handleDisconnect();
+//handleDisconnect();
 
-router.get("/users", (req, res) => {
- 
-  db.query("select * from ghanahomestay.users",(err,results)=>{
-    if(err){
-      res.json(err)
-    }else{
-      res.json(results)
-    }
-  })
-});
+
 
 
 
@@ -158,10 +152,25 @@ router.get("/get-all-applications/:firstname/:lastname/:email",(req,res)=>{
 
 })
 //retreieve all applications
-router.get("/applications",(req,res)=>{
+router.get("/applications",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
+  const apps=[]
+  const applications=await Application.find({})
+  var i=0
+  applications.map(async(a)=>{
+    const occupants=await ApplicationOccupant.find({
+      $and:[
+       { "application_id":a._id}
+      ]
+    })
+    apps.push({application:a,occupants:occupants})
+    i++
+    if(i==applications.length-1){
+      res.json({success:true,applications:apps,no_applications:applications.length})
+    }
+  })
 
-  db.query("select count(*) as appCount from ghanahomestay.applications ",(errCount,resultsCount)=>{
+  /*db.query("select count(*) as appCount from ghanahomestay.applications ",(errCount,resultsCount)=>{
       if(errCount){
       
         console.log(errCount)
@@ -205,15 +214,44 @@ router.get("/applications",(req,res)=>{
 
       }
   })
+  */
 
 })
 
 //args:none
 //returns all newly submitted applications
-router.get("/new-applications",(req,res)=>{
+router.get("/new-applications",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
+  const apps=[]
+  const applications=await Application.find({
+    $and:[
+      {"application_status":"APPLIED"},
+      {"notify-admin":1}
+    ]
+  })
 
-  db.query("select count(*) as appCount from ghanahomestay.applications where application_status='APPLIED' && notify_admin=1",(errCount,resultsCount)=>{
+  console.log(applications)
+  var i=0
+  
+  if(applications!=null){
+  applications.map(async(r)=>{
+    const occupants=await ApplicationOccupant.find({
+      $and:[
+        {"application_id":r._id}
+      ]
+    })
+    apps.push({application:r,occupants:occupants})
+    i++
+    if(i==applications.length-1){
+      res.json({success:true,applications:applications})
+    }
+  })
+}else{
+  res.json({success:true,applications:[],no_applications:0})
+
+}
+
+  /*db.query("select count(*) as appCount from ghanahomestay.applications where application_status='APPLIED' && notify_admin=1",(errCount,resultsCount)=>{
       if(errCount){
         console.log(errCount)
       }else{
@@ -259,15 +297,34 @@ router.get("/new-applications",(req,res)=>{
       }
 
   })
+  */
 
 })
 
 /**************************************NOTIFICATION ENDPOINTS**************************************** */
 //turn off notification update once admin has seen it
-router.post("/turnOffAdminNotify/:id",(req,res)=>{
+router.post("/turnOffAdminNotify/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
+  const id=req.params.id
+  const app=await Application.find({$and:[{"id":id}]})
+ // console.log(app)
+  const application=await Application.updateOne(
+    {"id":id},
+    {
+      $set:
+        {"notify_admin":0,"notify_admin_message":""},
+      
+      
+      }
+    )
+    console.log(application)
+      if(application.acknowledged==true){
+        res.json({success:true,changed:1,application:application})
+      }else{
+        res.json({success:false,changed:0})
+      }
 
-  db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
+  /*db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
     if(err){
       console.lof(err)
     }
@@ -286,16 +343,36 @@ router.post("/turnOffAdminNotify/:id",(req,res)=>{
       })
     }
   })
+  */
 
 })
 
-router.post("/setStatus/:id/:status",(req,res)=>{
+router.post("/setStatus/:id/:status",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
+  if(req.params.status!="APPLIED"&& req.body.message==null){
+    res.json({success:false,message:"setting status for statuses other than 'APPLIED' must include a notification message "})
+}else{
+    const application=await Application.updateOne(
+      {"id":req.params.id},
+      {$set:{
+        "application_status":req.params.status,
+        "notify_applicant":1,
+        "notify_applicant_message":req.body.message
+      }}
+    )
+    if(application.acknowledged==true){
+      res.json({success:true,no_applications:application.matchedCount})
+    }else{
+      res.json({success:false,no_applications:0})
+    }
+  }
+/*
   db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
     const appCount=Object.values(JSON.parse(JSON.stringify(results)))
     const count=appCount[0].appCount
     console.log(count)
+    
     if(count>0){
       if( req.body.message!=null){
         var cDate=new Date()
@@ -322,13 +399,102 @@ router.post("/setStatus/:id/:status",(req,res)=>{
     }
 
   })
+  */
 })
 
 /********************************************************************************************************************** */
-router.get("/checkAvailability/:id",(req,res)=>{
+router.get("/checkAvailability/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
-  var arrLength=0
+
+  const applicationBooked=await BookedDate.find({$and:[{"application_id":req.params.id}]})
+  console.log(applicationBooked)
+  
+    var available=true
+    const conflicting_dates=[]
+    const prom= new Promise((resolve,reject)=>{
+      axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
+            console.log(response.data)
+            console.log("gere")
+            const booked_dates=response.data.booked_dates
+            const alldates=await BookedDate.find({})
+            if(alldates.length>0){
+              alldates.map((date)=>{
+                  
+                booked_dates.map((bdate)=>{
+                  
+                  
+                  const bd=bdate.date.split(" ")
+                  const d=date.date.split(" ")
+                  if(bd[0]==d[0] && bd[1]==d[1] && bd[2]==d[2]&& bd[3]==d[3]){
+                   
+                    available=false
+                    conflicting_dates.push(date)
+                }
+                })
+               
+              })
+              setTimeout(()=>{
+                resolve()
+              },500)
+            }
+       })
+
+    })
+
+    prom.then(async()=>{
+         
+      //TODO:NOW CHECK TO SE IF PAYED
+        const payedApp=await Application.find({$or:[
+          {$and:[{"application_status":"PAYED","id":req.params.id}]},
+          {$and:[{"datePaid":!null,"id":req.params.id}]}
+        ]})
+        console.log(payedApp)
+        if(payedApp!=null){
+            res.json({success:true,paid:true,conflicting_dates:conflicting_dates})   
+        }else{
+           res.json({success:true,paid:false,conflicting_dates:conflicting_dates})
+        }
+      })
+    
+    })
+  
+   /*   db.query("select count(*) as appCount1 from ghanahomestay.applications where id=? && (application_status='PAYED' || (datePaid IS NOT NULL))",req.params.id,(err2,results2)=>{
+       if(err2){
+         console.log(err2)
+       }
+      
+       const appCount2=Object.values(JSON.parse(JSON.stringify(results2)))
+
+       const count2=appCount2[0].appCount1
+       console.log("\n\ncount:"+count2)
+
+       db.query("select * from ghanahomestay.applications where id=?",req.params.id,(err3,results3)=>{
+         if(err3){
+           console.log(err3)
+         }else{
+           if(results3[0]==null){
+             res.json({success:false,message: "application "+ req.params.id+" does not exist"})
+           }else{
+
+             if(count2>0){
+               res.json({success:true,paid:true,conflicting_dates:conflicting_dates})
+            }else{
+             //ALL good
+             res.json({success:true,paid:false,conflicting_dates:conflicting_dates})
+            }
+           }
+         }
+       })
+      })
+ }).catch(()=>{
+   console.log("here 3")
+ })
+  }else{
+    res.json({success:true,message:"no booked date"})
+  }
+
+  /*var arrLength=0
   const conflicting_dates=[]
   db.query("select count(*) as appCount from ghanahomestay.booked_dates where id=?",req.params.id,(err,results)=>{
     const appCount=Object.values(JSON.parse(JSON.stringify(results)))
@@ -356,7 +522,7 @@ router.get("/checkAvailability/:id",(req,res)=>{
 
         const prom=new Promise((resolve,reject)=>{
 
-          axios.get("https://ghanahomerental.herokuapp.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then((response)=>{
+          axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then((response)=>{
             console.log(response.data)
             console.log("gere")
             const booked_dates=response.data.booked_dates
@@ -482,9 +648,9 @@ router.get("/checkAvailability/:id",(req,res)=>{
    })
   })
 
+*/
 
 
-})
 
 
 
@@ -518,7 +684,7 @@ router.post("/deny-booking/:id",(req,res)=>{
                  const changed=results1.changedRows
                  if(changed>0){
                   //change in  approve and confirmedApproved is true
-                  axios.post("https://ghanahomerental.herokuapp.com/admin-applications/remove-booked-dates/"+req.params.id).then((response)=>{
+                  axios.post("http://localhost:3012/admin-applications/remove-booked-dates/"+req.params.id).then((response)=>{
                     console.log("changed:"+changed)
                     console.log(response.data)
                     res.json({success:true,changed:changed,canceled_dates:response.data.canceled_dates})
@@ -527,7 +693,7 @@ router.post("/deny-booking/:id",(req,res)=>{
 
                  }else{
                   //already denied, remove booking jic
-                  axios.post("https://ghanahomerental.herokuapp.com/admin-applications/remove-booked-dates/"+req.params.id).then((response)=>{
+                  axios.post("http://localhost:3012/admin-applications/remove-booked-dates/"+req.params.id).then((response)=>{
                     console.log("changed:"+changed)
                     console.log(response.data)
                     res.json({success:true,changed:changed,canceled_dates:response.data.canceled_dates})
@@ -537,7 +703,7 @@ router.post("/deny-booking/:id",(req,res)=>{
                 }
              }
             })
-   /* axios.post("https://ghanahomerental.herokuapp.com/admin-applications/remove-booked-dates/"+req.params.id).then(response)=>{
+   /* axios.post("http://localhost:3012/admin-applications/remove-booked-dates/"+req.params.id).then(response)=>{
 
     }
     */
@@ -545,7 +711,7 @@ router.post("/deny-booking/:id",(req,res)=>{
         }else{
           //already-canceld
           console.log("already Canceld\n\n")
-          axios.post("https://ghanahomerental.herokuapp.com/admin-applications/remove-booked-dates/"+req.params.id).then((response)=>{
+          axios.post("http://localhost:3012/admin-applications/remove-booked-dates/"+req.params.id).then((response)=>{
             console.log(response)
             db.query("update ghanahomestay.applications set application_status='DENIED' where id=?",req.params.id,(errNoChanged,resultsNoChanged)=>{
               if(errNoChanged){
@@ -612,7 +778,7 @@ router.post("/remove-booked-dates/:id",(req,res)=>{
 router.post("/approve-booking/:id",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
-  axios.get("https://ghanahomerental.herokuapp.com/admin-applications/checkAvailability/"+req.params.id).then((response)=>{
+  axios.get("http://localhost:3012/admin-applications/checkAvailability/"+req.params.id).then((response)=>{
    
    
     console.log(response.data.conflicting_dates)
@@ -651,7 +817,7 @@ router.post("/approve-booking/:id",(req,res)=>{
                 console.log("herei")
                
                 //check to see if paid if status was changed from payed to something else
-                axios.get("https://ghanahomerental.herokuapp.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then((response1)=>{
+                axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then((response1)=>{
                   console.log(response1)
                   const booked=results2
                   const our_dates=response1.data.booked_dates
@@ -936,10 +1102,43 @@ router.post("/approve-booking/:id",(req,res)=>{
 //new get allbooked dates
 
 //calulate all booked dates for an application
-router.get("/allBookingDatesForApplication/:id",(req,res)=>{
+router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
-  db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
+  var app=await Application.find({$and:[{"id":req.params.id}]})
+  if(app!=null){
+  app=app[0]
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  var cDate=new Date()
+  console.log(app)
+  var index=1
+  console.log(cDate)
+  var st=app.stay_start_date.split(" ")
+  var et=app.stay_end_date.split(" ")
+ 
+ const booked_dates=[]
+ 
+  const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+  const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+  var nextDate=new Date(startDate);
+  booked_dates.push({application_id:req.params.id,date:startDate.toString().substring(0,15)})
+
+  while(nextDate.toString().substring(0,15)!=endDate.toString().substring(0,15)){
+    var nextnext=nextDate.setDate(nextDate.getDate()+1)
+    nextDate=new Date(nextnext)
+    console.log((nextDate.toString().substring(0,15)))
+    booked_dates.push({application_id:req.params.id,date:nextDate.toString().substring(0,15)})  
+    index++
+  }
+  console.log(booked_dates)
+  res.json({success:true,booked_dates:booked_dates,no_days:index})
+}else{
+  res.json({success:false,message:"application "+req.params.id+" does not exist"})
+}
+
+  /*db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
     if(err){
         console.log(err)
         res.json({success:false,error:err})
@@ -989,6 +1188,7 @@ router.get("/allBookingDatesForApplication/:id",(req,res)=>{
 
     }
   })
+  */
 })
 
 //help:'/approve-booking
@@ -1098,7 +1298,7 @@ router.post("/reserveAndPromptPay/:id",(req,res)=>{
 
       const paymentDueDate=nextDate.toString().substring(0,15)
 
-      axios.get("https://ghanahomerental.herokuapp.com/admin-applications/checkAvailability/"+id).then((response)=>{
+      axios.get("http://localhost:3012/admin-applications/checkAvailability/"+id).then((response)=>{
         console.log(response.data.booked_dates)
         console.log(response.data)
         const conflicting_dates=response.data.conflicting_dates
@@ -1113,7 +1313,7 @@ router.post("/reserveAndPromptPay/:id",(req,res)=>{
             }else{
               var index=0
              
-                 axios.get("https://ghanahomerental.herokuapp.com/admin-applications/allBookingDatesForApplication/"+id).then((response1)=>{
+                 axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+id).then((response1)=>{
                   console.log("allbooked date\n\n\n")
                   console.log(response1.data)
                   const datesToReserve=[]
@@ -1230,7 +1430,7 @@ router.post("/release-reservation-due-to-unpaid/:id",(req,res)=>{
      console.log(count)
      
      if(count>0){
-      axios.get("https://ghanahomerental.herokuapp.com/admin-applications/checkPaymentDeadline/"+req.params.id).then((response)=>{
+      axios.get("http://localhost:3012/admin-applications/checkPaymentDeadline/"+req.params.id).then((response)=>{
         console.log(response.data)
         console.log(response.data.success==true&& response.data.hasDueDate==true && response.data.passedDue==true)
         if(response.data.success && response.data.hasDueDate && response.data.passedDue ){
@@ -1292,59 +1492,45 @@ router.post("/release-reservation-due-to-unpaid/:id",(req,res)=>{
   
 })
 
-router.get("/checkPaymentDeadline/:id",(req,res)=>{
+router.get("/checkPaymentDeadline/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
-  db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
-    if(err){
-      console.log(err)
-    }else{
-      const appCount=Object.values(JSON.parse(JSON.stringify(results)))
-      const count=appCount[0].appCount
-     console.log(count)
-     
-     if(count>0){
-      db.query("select * from ghanahomestay.applications where id=?",req.params.id,(err1,results1)=>{
-        if(err1){
-          console.log(err1)
-        }else{
-          console.log(results1)
-          const app=results1[0]
-
-          const dueDate=app.datePaymentDue
-          console.log(dueDate)
-          if(dueDate==null){
-              res.json({success:true,message:"no payment due date",hasDueDate:false,passedDue:false})
-          }else{
-            var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
-            "Aug","Sep","Oct","Nov","Dec"];
-            var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
-            const cDate=new Date()
-            const currdate=cDate.toString().substring(0,15)
-            console.log(dueDate)
-            console.log(currdate)
-            const et=app.stay_end_date.split(" ")
-            const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
-            const dt=dueDate.split(" ")
-            const dueDateObj=new Date(dt[3],monthnum[months.indexOf(dt[1])-1],dt[2])
-           const currString=currdate.split(" ")
-         
-         
-            if((currString[0]==dt[0] && currString[1]==dt[1]&& dt[2]==currString[2] && currString[3]==dt[3])  || cDate>=dueDateObj){
-              res.json({success:true,hasDueDate:true,passedDue:true,current_date:currdate,due_date:dueDate})
-              
-            }else{
-              res.json({success:true,hasDueDate:true,passedDue:false,current_date:currdate,due_date:dueDate})
-            }
-          }
-
-        }
-      })
-     }else{
-      res.json({success:false,message:"application "+req.params.id+" does not exist"})
-     }
-    }
+  const id=req.params.id
+  const app=await Application.find({
+    $and:[{"id":id}]
   })
+  console.log(app)
+  const dueDate=app.datePaymentDue
+  console.log(dueDate)
+  if(dueDate==null){
+      res.json({success:true,message:"no payment due date",hasDueDate:false,passedDue:false})
+  }else
+  if(app!=null){
+    var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+    "Aug","Sep","Oct","Nov","Dec"];
+    var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+    const cDate=new Date()
+    const currdate=cDate.toString().substring(0,15)
+    console.log(dueDate)
+    console.log(currdate)
+    const et=app.stay_end_date.split(" ")
+    const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+    const dt=dueDate.split(" ")
+    const dueDateObj=new Date(dt[3],monthnum[months.indexOf(dt[1])-1],dt[2])
+   const currString=currdate.split(" ")
+ 
+ 
+    if((currString[0]==dt[0] && currString[1]==dt[1]&& dt[2]==currString[2] && currString[3]==dt[3])  || cDate>=dueDateObj){
+      res.json({success:true,hasDueDate:true,passedDue:true,current_date:currdate,due_date:dueDate})
+      
+    }else{
+      res.json({success:true,hasDueDate:true,passedDue:false,current_date:currdate,due_date:dueDate})
+    }
+  }else{
+    res.json({success:false,message:"application "+req.params.id+" does not exist"})
+
+  }
+
 })
 
 
@@ -1377,7 +1563,7 @@ module.exports=router
       const conflict_dates=[]
       console.log(results)
       if(results==null || results.length==0){
-        axios.get("https://ghanahomerental.herokuapp.com/admin-applications/calculate-all-booked-dates/"+req.params.id).then((response)=>{
+        axios.get("http://localhost:3012/admin-applications/calculate-all-booked-dates/"+req.params.id).then((response)=>{
           console.log(response.data.booked_dates)
           const booked_dates=response.data.booked_dates
           var index=1
@@ -1396,7 +1582,7 @@ module.exports=router
           
         })
       }else{
-        axios.get("https://ghanahomerental.herokuapp.com/admin-applications/calculate-all-booked-dates/"+req.params.id).then((response)=>{
+        axios.get("http://localhost:3012/admin-applications/calculate-all-booked-dates/"+req.params.id).then((response)=>{
           const booked_dates=response.data.booked_dates
 
         const flagApproved=false
