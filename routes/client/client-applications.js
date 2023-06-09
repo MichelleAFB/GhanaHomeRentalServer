@@ -14,6 +14,7 @@ const uniqueValidator = require('mongoose-unique-validator')
 const { User } = require("../../models/User");
 const {Application}=require("../../models/Application")
 const {ApplicationOccupant}=require("../../models/ApplicationOccupant");
+const{ ApplicationReviewImage }=require( "../../models/ApplicationReviewImages");
 const { Console } = require("winston/lib/winston/transports");
 
 
@@ -85,7 +86,7 @@ function handleDisconnect() {
   }
 }
 
-//handleDisconnect();
+handleDisconnect();
 
 
 
@@ -256,22 +257,24 @@ router.post("/create-application",(req,res)=>{
   const ed=req.body.endDate.split(" ")
   const startDate=st[0]+" "+st[1]+" "+st[2]+" "+st[3]
   const endDate=ed[0]+" "+ed[1]+" "+ed[2]+" "+ed[3]
-  var applicant
- var user
- console.log(req.body)
-  
+
+
+ //console.log(req.body)
+  const applicant=adults.filter((u)=> u.association=="applicant")
 
   const prom=new Promise(async(resolve,reject)=>{
 
 
-    const applicant=adults[0]
+    //const applicant=adults[0]
+    console.log("applicant")
     console.log(applicant)
-    user= await User.find({
+    const use= await User.find({
      $and:[
-       {"email":applicant.email}
+       {"email":applicant[0].email}
      ]
     })
-    user=user[0]
+    var user=use[0]
+    console.log(use)
 
     console.log("\n\n\n\n")
     console.log(user)
@@ -321,7 +324,7 @@ router.post("/create-application",(req,res)=>{
       notify_admin_message:"",
       notify_applicant_message:"",
       datePaid:"",
-      currentlyOccupied:"",
+      currentlyOccupied:0,
       checkoutTimeout:"",
       review:"",
       paymentSessionUrl:"",
@@ -358,15 +361,9 @@ router.post("/create-application",(req,res)=>{
        childSaved=await child.save()
       })
     }
-   if(cLength>0){
-    if(childSaved!=null){
-      res.json({success:true,application:application})
-    }
-   }else{
-    if(adultSaved!=null){
-      res.json({success:true,application:application})
-    }
-   }
+  setTimeout(()=>{
+    res.json({success:true,application:application})
+  },800)
   }else{
     res.json({success:false,message:"no account found"})
   }
@@ -882,6 +879,95 @@ router.post("/turnOffNotifyApplicant/:id",(req,res)=>{
 
 
 //calulate all booked dates for an application
+router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
+  res.setHeader("Access-Control-Allow-Origin", "*");
+
+  var app=await Application.find({$and:[{"id":req.params.id}]})
+  if(app!=null){
+  app=app[0]
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  var cDate=new Date()
+  console.log(app)
+  var index=1
+  console.log(cDate)
+  var st=app.stay_start_date.split(" ")
+  var et=app.stay_end_date.split(" ")
+ 
+ const booked_dates=[]
+ 
+  const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+  const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+  var nextDate=new Date(startDate);
+  booked_dates.push({application_id:req.params.id,date:startDate.toString().substring(0,15)})
+
+  while(nextDate.toString().substring(0,15)!=endDate.toString().substring(0,15)){
+    var nextnext=nextDate.setDate(nextDate.getDate()+1)
+    nextDate=new Date(nextnext)
+    console.log((nextDate.toString().substring(0,15)))
+    booked_dates.push({application_id:req.params.id,date:nextDate.toString().substring(0,15)})  
+    index++
+  }
+  console.log(booked_dates)
+  res.json({success:true,booked_dates:booked_dates,no_days:index})
+}else{
+  res.json({success:false,message:"application "+req.params.id+" does not exist"})
+}
+
+  /*db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
+    if(err){
+        console.log(err)
+        res.json({success:false,error:err})
+    }else{
+      const appCount=Object.values(JSON.parse(JSON.stringify(results)))
+      const count=appCount[0].appCount
+      console.log(count)
+      if(count>0){
+        db.query("select * from ghanahomestay.applications where id=?",req.params.id,(err1,results1)=>{
+          if(err1){
+            console.log(err1)
+            res,json({success:false,error:err1})
+          }else{
+            const app=results1[0]
+            var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+            "Aug","Sep","Oct","Nov","Dec"];
+            var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+            var cDate=new Date()
+            console.log(app)
+            var index=1
+            console.log(cDate)
+            var st=app.stay_start_date.split(" ")
+            var et=app.stay_end_date.split(" ")
+           
+           const booked_dates=[]
+           
+            const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+            const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+            var nextDate=new Date(startDate);
+            booked_dates.push({application_id:req.params.id,date:startDate.toString().substring(0,15)})
+
+            while(nextDate.toString().substring(0,15)!=endDate.toString().substring(0,15)){
+              var nextnext=nextDate.setDate(nextDate.getDate()+1)
+              nextDate=new Date(nextnext)
+              console.log((nextDate.toString().substring(0,15)))
+              booked_dates.push({application_id:req.params.id,date:nextDate.toString().substring(0,15)})  
+              index++
+            }
+            console.log(booked_dates)
+            res.json({success:true,booked_dates:booked_dates,no_days:index})
+          }
+        })
+
+      }else{
+        res.json({success:false,message:"application "+req.params.id+" does not exist"})
+      }
+
+    }
+  })
+  */
+})
+/*
 router.get("/allBookingDatesForApplication/:id",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
@@ -936,7 +1022,7 @@ router.get("/allBookingDatesForApplication/:id",(req,res)=>{
     }
   })
 })
-
+*/
 /********************************************GUESTS************************ */
 /*
 router.get("/guests/:id",(req,res)=>{
@@ -1080,8 +1166,10 @@ router.get("/guests/:id/:occupant_id",(req,res)=>{
 })
 
 
+
 router.get("/get-all-reviews",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
+
 
 
   const reviews=[]
@@ -1090,10 +1178,35 @@ router.get("/get-all-reviews",(req,res)=>{
  var images
  const allReviews=[]
 
-  const prom=new Promise((resolve,reject)=>{
+  const prom=new Promise(async(resolve,reject)=>{
 
+    const reviews=[]
+    const review_img=await ApplicationReviewImage.find({})
+
+    review_img.map((r)=>{
+      if(!reviews.includes(r.application_id)){
+        reviews.push(r.application_id)
+      }
+    })
+    var images
+    const our_reviews=[]
+    reviews.map((i)=>{
+      images=[]
+      review_img.map((r)=>{
+        if(r.application_id==i){
+          images.push(r)
+        }
+      })
+      our_reviews.push({application_id:i,images:images})
+    })
+
+   
+    setTimeout(()=>{
+      console.log(our_reviews)
+      res.json({success:true,reviews:our_reviews})
+    },800)
   
-    db.query("select * from ghanahomestay.application_review_images",(err,results)=>{
+    /*db.query("select * from ghanahomestay.application_review_images",(err,results)=>{
       if(err){
         console.log(err)
       }else{
@@ -1165,6 +1278,7 @@ router.get("/get-all-reviews",(req,res)=>{
       })
 
     })
+    */
 
   })
 })

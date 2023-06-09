@@ -100,6 +100,7 @@ router.post("/checkout/:id",async(req,res)=>{
   const id=req.params.id
   const fees=req.body.fees
   console.log(fees)
+  console.log("hi")
   const items=[]
   const prom=new Promise((resolve,reject)=>{
     fees.map((item)=>{
@@ -150,6 +151,9 @@ router.post("/checkout/:id",async(req,res)=>{
     prom1.then((response)=>{
       console.log(response)
       const cDate=new Date()
+      if(response!=null){
+        res.json({success:true,url:response})
+      }
       const currDate=cDate.toString().substring(0,15)
       db.query("update ghanahomestay.applications set datePaid=?, paymentSessionUrl=? where id=? ",[currDate,response,req.params.id],(err,results)=>{
         if(err){

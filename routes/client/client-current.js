@@ -93,10 +93,10 @@ function handleDisconnect() {
   if (db == null || db.state == "disconnected") {
   db = mysql.createConnection(
     {
-      user:"bd4e78905dad5a",
-      host:'us-cdbr-east-06.cleardb.net',
-      password:"5e037d99",
-      database:"heroku_ad7f7c4ee7bc6b0"
+      user:"root",
+      host:'localhost',
+      password:"",
+      port:3306,
     }
   ); // R
     console.log("------connection lost-----------")
