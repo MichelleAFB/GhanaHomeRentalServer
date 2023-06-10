@@ -11,6 +11,7 @@ const bodyParser = require("body-parser");
 var {db}=require("../../config/db")
 const mongoose=require("mongoose")
 const uniqueValidator = require('mongoose-unique-validator')
+const { Application } =require('../../models/Application');
 
 
 const connectdb = async () => {
@@ -148,23 +149,39 @@ router.post("/checkout/:id",async(req,res)=>{
 
     })
 
-    prom1.then((response)=>{
+    prom1.then(async(response)=>{
       console.log(response)
       const cDate=new Date()
       if(response!=null){
         res.json({success:true,url:response})
       }
       const currDate=cDate.toString().substring(0,15)
-      db.query("update ghanahomestay.applications set datePaid=?, paymentSessionUrl=? where id=? ",[currDate,response,req.params.id],(err,results)=>{
+      const updated=await Application.updateOne(
+        {"id":req.params.id},
+        {
+          $set:{
+            "datePaid":currDate,
+            "paymentSessionUrl":response,
+
+          }
+        }
+      )
+      if(updated.acknowledged==true){
+        res.json({success:true,url:response})
+      }else{
+        res.json({success:false,message:"error"})
+      }
+     /* db.query("update ghanahomestay.applications set datePaid=?, paymentSessionUrl=? where id=? ",[currDate,response,req.params.id],(err,results)=>{
         if(err){
           console.log(err)
         }else{
             res.json({success:true,url:response})
         }
       })
+      */
     })
   }).catch(()=>{
-    res.json({success:false})
+    //res.json({success:false})
   })
 })
 
@@ -510,7 +527,7 @@ promise.then(()=>{
       }
     })
   }else{
-    res.json({success:false,message:"no application "+req.params.id+" exist"})
+   // res.json({success:false,message:"no application "+req.params.id+" exist"})
   }
 
 

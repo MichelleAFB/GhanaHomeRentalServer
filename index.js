@@ -101,6 +101,7 @@ db.connect(() => {
 });
 
 /*********************************RUN SERVER************************************************************* */
+console.log("port:"+process.env.PORT)
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }

@@ -510,10 +510,11 @@ const apps=[]
       $and:[{"application_id":r.id}]
     })
     apps.push({application:r,occupants:occ})
-    if(i==applications.length-1){
+    i++
+    if(i>=applications.length){
       res.json({success:true,applications:apps,no_applications:apps})
     }
-    i++
+   
   })
 
    })
@@ -643,7 +644,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
               console.log(app.stay_start_date+" "+activeDate.toString().substring(0,15))
               console.log("ACTIVED")
               const updated=await Application.update(
-                {"id":ObjectId(req.params.id)}
+                {"id":req.params.id}
                 ,{
                   $set:{
                     "currentlyOccupied":1
@@ -797,13 +798,18 @@ router.post("/release-reservation-due-to-unpaid/:id",(req,res)=>{
 //TODO: fix can send response after sender
 //Client can only set certain status from their end APPLIED,PAID
 //admin can set APPROVED and RESERVED
-router.post("/setStatus/:id/:status",(req,res)=>{
+router.post("/setStatus/:id/:status",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
 
   console.log(req.params.status)
   console.log(req.body)
-  db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
+  const app=await Application.find({
+    $and:[{"id":req.params.id}]
+  })
+
+  console.log(app)
+  /*db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
     const appCount=Object.values(JSON.parse(JSON.stringify(results)))
     const count=appCount[0].appCount
     console.log(count)
@@ -848,6 +854,7 @@ router.post("/setStatus/:id/:status",(req,res)=>{
     }
 
   })
+  */
 })
 
 
