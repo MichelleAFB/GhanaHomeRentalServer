@@ -153,8 +153,8 @@ router.post("/checkout/:id",async(req,res)=>{
       console.log(response)
       const cDate=new Date()
       if(response!=null){
-        res.json({success:true,url:response})
-      }
+        
+      
       const currDate=cDate.toString().substring(0,15)
       const updated=await Application.updateOne(
         {"id":req.params.id},
@@ -168,7 +168,8 @@ router.post("/checkout/:id",async(req,res)=>{
       )
       if(updated.acknowledged==true){
         res.json({success:true,url:response})
-      }else{
+      }
+    }else{
         res.json({success:false,message:"error"})
       }
      /* db.query("update ghanahomestay.applications set datePaid=?, paymentSessionUrl=? where id=? ",[currDate,response,req.params.id],(err,results)=>{

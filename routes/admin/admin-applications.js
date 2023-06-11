@@ -929,11 +929,12 @@ router.post("/approve-booking/:id",(req,res)=>{
 
 
 //get number of days
-router.get("/getNoDays/:id",(req,res)=>{
+router.get("/getNoDays/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
-  db.query("select * from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
-    const application=results[0]
+  const app=await Application.find({$and:[{"_id":req.params.id}]})
+    const application=app[0]
+    if(application!=null){
     console.log("start:"+application.stay_start_date)
     console.log("end:"+application.stay_end_date)
     const s=application.stay_start_date.toString()
@@ -1087,8 +1088,11 @@ router.get("/getNoDays/:id",(req,res)=>{
   
       console.log("years dont match")
     }
+  }else{
+    res.json({success:false,message:"app "+req.params.id+" does not exist"})
+  }
 
-  })
+  
 })
 
 /*
@@ -1417,11 +1421,53 @@ router.get("/test/:id",(req,res)=>{
 changed status back to "APPLIED"
 remove all reserved date in booking_dates tables associated with application
 */
-router.post("/release-reservation-due-to-unpaid/:id",(req,res)=>{
+router.post("/release-reservation-due-to-unpaid/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
+  console.log("_id"+req.params.id)
+  var app=await Application.find({
+    $and:[{"_id":req.params.id}]
+  })
+  console.log("app")
+  console.log(app)
+  app=app[0]
+  if(app!=null){
+  axios.get("http://localhost:3012/admin-applications/checkPayementDeadline/"+req.params.id).then(async(response)=>{
+    if(response.data.success && response.data.hasDueDate && response.data.passedDue){
+       const released=await Application.updateOne(
+        {"_id":req.params.id},
+        {
+          $set:{"datePaymentDue":"","application_status":"APPLIED","notify_applicant":1,"notify_applicant_message":"Your have missed your payment deadline for this stay.If it was reserved, it has now been dropped."},
+        }
+       )
+       if(released.acknowledge==true){
+        const booked_dates=await BookedDate.find({"application_id":req.params.id})
+        if(booked.length>0){
+          const deleted=await BookedDate.remove({"application_id":"req.params.id"})
+          if(deleted.acknowledge==true){
+            res.json({success:true,remove_bookings:booked_dates.length})
+
+          }else{
+            res.json({success:false,remove_bookings:0})
+          }
+        }
+       }if(response.data.success && response.data.hasDueDate && !response.data.passedDue){
+        res.json({success:true,hasDueDate:response.data.hasDueDate,passDue:response.data.passDue,message:"Due date not meet"})
+      }  if(response.data.success && !response.data.hasDueDate){
+        res.json({success:true,hasDueDate:response.data.hasDueDate,passDue:response.data.passedDue,message:"No payment due date"})
+      }
+      if(!response.data.success){
+        res.json({success:false,hasDueDate:response.data.hasDueDate,passDue:response.data.passedDue,message:"No payment due date"})
+
+      }
+    }
+    
+  })
+}else{
+  res.json({success:false,message:"app "+req.params.id+" does not exist"})
+}
 
 
-  db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
+  /*db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
     if(err){
       console.log(err)
     }else{
@@ -1489,7 +1535,7 @@ router.post("/release-reservation-due-to-unpaid/:id",(req,res)=>{
      }
     }
   })
-  
+  */
 })
 
 router.get("/checkPaymentDeadline/:id",async(req,res)=>{
