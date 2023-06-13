@@ -353,6 +353,50 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
   if(req.params.status!="APPLIED"&& req.body.message==null){
     res.json({success:false,message:"setting status for statuses other than 'APPLIED' must include a notification message "})
 }else{
+    if(req.params.status=="RESERVED"){
+      var currDate=new Date()
+      currDate=currDate.toString().substring(0,15)
+      axios.get("http://localhost:3012/admin-applications/newGetPaymentDueDate").then(async(response)=>{
+        const application=await Application.updateOne(
+          {"_id":req.params.id},
+          {$set:{
+            "application_status":req.params.status,
+            "notify_applicant":1,
+            "notify_applicant_message":req.body.message,
+            "dateReserved":currDate,
+            "datePaymentDue":response.data
+          }}
+        )
+      })
+      if(application.acknowledged==true){
+        res.json({success:true,no_applications:application.matchedCount})
+      }else{
+        res.json({success:false,no_applications:0})
+      }
+    }else    if(req.params.status=="CONFIRMED"){
+      var currDate=new Date()
+      currDate=currDate.toString().substring(0,15)
+      
+        const application=await Application.updateOne(
+          {"_id":req.params.id},
+          {$set:{
+            "application_status":req.params.status,
+            "notify_applicant":1,
+            "notify_applicant_message":req.body.message,
+            "dateApproved":currDate,
+            "approved":1
+          }}
+        )
+        const updatedApp=await Application.find({$and:[{"_id":req.params.id}]})
+        console.log(application)
+        if(application.acknowledged==true){
+          res.json({success:true,no_applications:application.matchedCount,application:updatedApp})
+        }else{
+          res.json({success:false,no_applications:0})
+        }
+      
+    }else{ 
+    
     const application=await Application.updateOne(
       {"id":req.params.id},
       {$set:{
@@ -366,6 +410,7 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
     }else{
       res.json({success:false,no_applications:0})
     }
+  }
   }
 /*
   db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
@@ -409,15 +454,19 @@ router.get("/checkAvailability/:id",async(req,res)=>{
 
   const applicationBooked=await BookedDate.find({$and:[{"application_id":req.params.id}]})
   console.log(applicationBooked)
-  
+
     var available=true
     const conflicting_dates=[]
+    var all
+    const conflicts=[]
+    var dates
     const prom= new Promise((resolve,reject)=>{
       axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
-            console.log(response.data)
-            console.log("gere")
+           
             const booked_dates=response.data.booked_dates
             const alldates=await BookedDate.find({})
+            all=alldates
+            dates=response.data.booked_dates
             if(alldates.length>0){
               alldates.map((date)=>{
                   
@@ -426,34 +475,40 @@ router.get("/checkAvailability/:id",async(req,res)=>{
                   
                   const bd=bdate.date.split(" ")
                   const d=date.date.split(" ")
-                  if(bd[0]==d[0] && bd[1]==d[1] && bd[2]==d[2]&& bd[3]==d[3]){
-                   
+               
+                 // console.log(bdate+" "+date)
+                  if(bdate==date){
+                   console.log(bdate+" "+date)
                     available=false
-                    conflicting_dates.push(date)
+                   conflicts.push(date)
+                    
+                }else {
+                 
                 }
                 })
                
               })
               setTimeout(()=>{
                 resolve()
-              },500)
+              },600)
             }
        })
 
     })
 
     prom.then(async()=>{
+      
          
       //TODO:NOW CHECK TO SE IF PAYED
         const payedApp=await Application.find({$or:[
-          {$and:[{"application_status":"PAYED","id":req.params.id}]},
-          {$and:[{"datePaid":!null,"id":req.params.id}]}
+          {$and:[{"application_status":"PAYED"},{"_id":req.params.id}]},
+          {$and:[{"datePaid":!null},{"_id":req.params.id}]}
         ]})
         console.log(payedApp)
-        if(payedApp!=null){
-            res.json({success:true,paid:true,conflicting_dates:conflicting_dates})   
+        if(payedApp!=null && conflicting_dates.length==0){
+            res.json({success:true,paid:true,conflicting_dates:conflicts})   
         }else{
-           res.json({success:true,paid:false,conflicting_dates:conflicting_dates})
+           res.json({success:true,paid:false,conflicting_dates:conflicts})
         }
       })
     
@@ -650,7 +705,32 @@ router.get("/checkAvailability/:id",async(req,res)=>{
 
 */
 
+router.get("/check",async(req,res)=>{
+  const apps=await Application.find({})
+  var i=0;
+  console.log("here")
+  const arr=[]
 
+    apps.map((a)=>{
+      console.log(apps[i].id)
+      axios.get("http://localhost:3012/admin-applications/checkAvailability/"+a._id.toString()).then(async(response)=>{
+        var data=await response.data
+         console.log(response.data)
+         console.log(apps[i])
+  
+        arr.push({day:a.stay_start_date,data:data})
+       i++
+        console.log(arr)
+        console.log(i)
+        if(i==apps.length-1){
+          res.json(arr)
+        }
+      })
+
+    })
+  
+ 
+})
 
 
 
@@ -778,17 +858,17 @@ router.post("/remove-booked-dates/:id",(req,res)=>{
 router.post("/approve-booking/:id",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
-  axios.get("http://localhost:3012/admin-applications/checkAvailability/"+req.params.id).then((response)=>{
+  axios.get("http://localhost:3012/admin-applications/checkAvailability/"+req.params.id).then(async(response)=>{
    
    
-    console.log(response.data.conflicting_dates)
-  
+    console.log(response.data)
+    console.log("conflict"+response.data.conflicting_dates.length)
     if(!response.data.success){
       res.json({success:false,message:response.data.message})
     }
     else{
       const conflicting_dates=response.data.conflicting_dates
-      console.log(conflicting_dates.length)
+     
       if(conflicting_dates.length!=0 &&  response.data.paid){
       console.log("fdsd")
       res.json({success:true,approved:false,message:"conflighting dates",paid:response.data.paid,conflicting_dates:response.data.conflicting_dates})
@@ -797,8 +877,164 @@ router.post("/approve-booking/:id",(req,res)=>{
       console.log("fdsd")
       res.json({success:true,approved:false,message:"not paid",paid:response.data.paid,conflicting_dates:response.data.conflicting_dates})
     }
-    if(conflicting_dates.length==0 && response.data.paid==true && response.data.success){
-      db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
+    if(conflicting_dates.length==0  && response.data.success){
+      var app=await Application.find({$and:[{"_id":req.params.id}]})
+      app=app[0]
+      
+      if(app!=null){
+        const booked_dates=await BookedDate.find({$and:[{"application_id":!req.params.id}]})
+        console.log("booked_dates")
+        console.log(booked_dates)
+        console.log("booked dates")
+        console.log(booked_dates)
+        if(booked_dates.length>0){
+          axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then((response)=>{
+            if(response.data.success){
+              const our_dates=response.data.booked_dates
+              booked_dates.map((b)=>{
+                our_dates.map((o)=>{
+                  console.log(o.date+" "+b.date)
+                  console.log(b)
+                  console.log(o.application_id+" "+b.application_id)
+                  if(o.date==b.date && o.application_id!=b.application_id){
+                    console.log("match\n\n")
+                    conflicts.push({application_id:b.application_id,date:b.date})
+                    
+                    index++;
+                  }
+                })
+              })
+              if(index>0){
+                  
+                res.json({success:true,approved:false,conflicting_dates:conflicts,paid:true,message:"conflicting dates"})
+              }else{
+                var indLength=0
+                var alreadyBooked=0
+                const prom2=new Promise((resolve2,reject2)=>{
+                  //Insure no duplicate entries
+                  our_dates.map(async(o)=>{
+                    console.log("916")
+                    var alreadybooked=await BookedDate.find({$and:[{"date":o.date},{"application_id":req.params.id}]})
+                    if(alreadybooked.length>0){
+                      alreadyBooked++
+                    }else{
+                      console.log("\n\nNEW BOOKED")
+                      const newBooked= new BookedDate({
+                        application_id:req.params.id,
+                        date:o.date
+                      })
+
+                      const bookedSaved=await newBooked.save()
+                      
+                      indLength++
+                    }
+                  })
+                  resolve2()
+                })
+               
+                prom2.then(async()=>{
+                  console.log(our_dates.length+" alreadyLength:"+alreadyBooked+" newbooked:"+index)
+                    const cDate=new Date()
+                    const currDate=cDate.toString().substring(0,15)
+                    console.log("\n\nUPDATING APP")
+                    const updateApp=await Application.updateOne({"_id":req.params.id},{
+                      $set:[{"approved":1},{"dateApproved":currDate}]
+                    })
+                    
+                    if(updateApp.acknowledged==true){
+                      console.log(our_dates.length)
+                      console.log(alreadybooked+indLength)
+                      if(alreadyBooked+indLength==our_dates.length){
+                        res.json({success:true,approved:true,conflicting_dates:conflicting_dates,paid:response.data.paid,no_booked:alreadyBooked+indLength})
+                        }
+
+                    }else{
+
+                    }
+                  
+                })          
+              }
+            }else{
+              //TODO:send error
+            }
+          })
+
+        }else{
+          var indLength=0
+                var alreadyBooked=0
+          axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then((response)=>{
+            if(response.data.success){
+              const our_dates=response.data.booked_dates
+              console.log("\n\nour date")
+              console.log(our_dates)
+              var index=0
+                
+                const prom2=new Promise((resolve2,reject2)=>{
+                  //Insure no duplicate entries
+                  our_dates.map(async(o)=>{
+                    try{
+                      console.log("here1")
+                    var alreadybooked=await BookedDate.find({$and:[{"date":o.date},{"application_id":req.params.id}]})
+                    }catch(error){
+                      console.log(error)
+                    }
+                    console.log(alreadybooked)
+                    if(alreadybooked.length>0){
+                      alreadyBooked++
+                    }else{
+                      console.log("\n\nNEW BOOKED")
+                     const newBooked= new BookedDate({
+                        application_id:req.params.id,
+                        date:o.date
+                      })
+                      const bookedSaved=await newBooked.save()
+                      indLength++
+                    }
+                  })
+                  resolve2()
+                })
+               
+                prom2.then(async()=>{
+                  console.log("already:"+alreadyBooked)
+                  console.log(our_dates.length+" alreadyLength:"+alreadyBooked+" newbooked:"+index)
+                    const cDate=new Date()
+                    const currDate=cDate.toString().substring(0,15)
+                    console.log("\n\nUPDATING APP")
+                    console.log("997")
+                    var checkApp=await Application.find({$and:[{"_id":req.params.id},{"approved":1}]})
+                    
+                   const updateApp=await Application.updateOne({"_id":req.params.id},
+                      {$set:{"approved":1,"dateApproved":currDate}}
+                    )
+                    console.log("998")
+                    console.log(updateApp)
+                    if(updateApp.acknowledged==true ){
+                      console.log(alreadyBooked+indLength)
+                      console.log(our_dates.length)
+                   
+                        res.json({success:true,approved:true,conflicting_dates:conflicting_dates,paid:response.data.paid,no_booked:alreadyBooked+indLength})
+                        
+                        console.log(updateApp)
+
+                    }else if(checkApp[0]!=null && updateApp.acknowledged==false){
+                      console.log("Already updated")
+                      console.log(checkApp)
+                      res.json({success:true,approved:true,conflicting_dates:conflicting_dates,paid:response.data.paid,no_booked:alreadyBooked+indLength})
+                    }
+                  
+                })          
+              
+            }else{
+              //TODO:send error
+            }
+          })
+        }
+      }else{
+        res.json({success:false,message:"application "+ req.params.id+" does not exist."})
+      }
+
+
+     /* db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
      console.log("here 1")
         if(err){
           console.log(err)
@@ -909,7 +1145,7 @@ router.post("/approve-booking/:id",(req,res)=>{
             /*db.query("update ghanahomestay.applications set approved=1,dateApproved=? where id=?",[currDate,req.params.id],(err1,results1)=>{
     
             })
-            */
+            
     
           }else{
             res.json({success:false,message:"application "+ req.params.id+" does not exist."})
@@ -920,11 +1156,138 @@ router.post("/approve-booking/:id",(req,res)=>{
 
 
       })
+      */
+      
 
     }
   }
   })
 })
+
+router.get("/getActiveStatus/:id",async(req,res)=>{
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  
+  var app= await Application.find({
+    $and:[
+      {"_id":req.params.id}
+    ]
+  })
+  app=app[0]
+  const cDate=new Date()
+            const currDate=cDate.toString().substring(0,15)
+            var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+            "Aug","Sep","Oct","Nov","Dec"];
+            var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+            var st=app.stay_start_date.split(" ")
+            var et=app.stay_end_date.split(" ")
+           //active Date starts 1day before
+            const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+            const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+            var activeDate=new Date(startDate)
+            var nextnext=activeDate.setDate(cDate.getDate()+1)
+            activeDate=new Date(nextnext)
+            console.log("today:"+activeDate.toString().substring(0,15))
+            console.log(app)
+            console.log(app.currentlyOccupied)
+            
+            if(app.currentlyOccupied==1 && app.application_status=="CONFIRMED"){
+            
+              console.log("ALREADY SET")
+              res.json({success:true,currentlyOccupied:true})
+            }else if((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED"){
+              console.log(app.stay_start_date+" "+activeDate.toString().substring(0,15))
+              console.log("ACTIVED")
+              const updated=await Application.updateOne(
+                {"_id":req.params.id}
+                ,{
+                  $set:{
+                    "currentlyOccupied":1
+                  }
+                })
+                console.log(updated)
+                if(updated.acknowledged){
+                  res.json({success:true,currentlyOccupied:true})
+                }
+          
+              
+            }else if(!((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED") && !(app.currentlyOccupied==1 && app.application_status=="CONFIRMED")){
+              console.log("ELSE")
+              res.json({success:true,currentlyOccupied:false})
+             
+            }else if(cDate>endDate && (app.checkoutTime!=null || app.checkoutTime!="")){
+              const turnOffAvtice=await Application.updateOne({"_id":req.params.id},
+              {
+                $set:{"currentlyOccupied":0}
+              })
+
+              axios.post("http://localhost:3012/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants ch"})
+              
+
+            }
+
+  /*db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
+    if(err){
+      console.log(err)
+    }else{
+      const appCount=Object.values(JSON.parse(JSON.stringify(results)))
+      const count=appCount[0].appCount
+      if(count>0){
+        db.query("select * from ghanahomestay.applications where id=?",req.params.id,(err1,results1)=>{
+          if(err1){
+            console.log(err1)
+          }else{
+            const app=results1[0]
+            const cDate=new Date()
+            const currDate=cDate.toString().substring(0,15)
+            var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+            "Aug","Sep","Oct","Nov","Dec"];
+            var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+            var st=app.stay_start_date.split(" ")
+            var et=app.stay_end_date.split(" ")
+           //active Date starts 1day before
+            const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+            const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+            var activeDate=new Date(startDate)
+            var nextnext=activeDate.setDate(cDate.getDate()+1)
+            activeDate=new Date(nextnext)
+            console.log("today:"+activeDate.toString().substring(0,15))
+            console.log(app)
+            console.log(app.currentlyOccupied)
+            if(app.currentlyOccupied==1 && app.application_status=="CONFIRMED"){
+            
+              console.log("ALREADY SET")
+              res.json({success:true,currentlyOccupied:true})
+            }if((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED"){
+              console.log(app.stay_start_date+" "+activeDate.toString().substring(0,15))
+              console.log("ACTIVED")
+               db.query("update ghanahomestay.applications set currentlyOccupied=1 where id=?",req.params.id,(err2,results2)=>{
+                
+                if(err2){
+                  console.log(err2)
+                }else{
+                  console.log(results2)
+                  console.log("UPDATE")
+                  res.json({success:true,currentlyOccupied:true})
+                }
+               })
+            }if(!((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED") && !(app.currentlyOccupied==1 && app.application_status=="CONFIRMED")){
+              console.log("ELSE")
+              res.json({success:true,currentlyOccupied:false})
+             
+            }
+          }
+        })
+
+      }else{
+        console.log("NO APPS")
+        res.json({success:false,message:"Application "+req.params.id+" does not exist"})
+      }
+
+    }
+  })
+  */
+})
+/*
 
 
 
@@ -1109,16 +1472,14 @@ router.post("/approve-booking/:id",(req,res)=>{
 router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
-  var app=await Application.find({$and:[{"id":req.params.id}]})
+  var app=await Application.find({$and:[{"_id":req.params.id}]})
   if(app!=null){
   app=app[0]
   var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
   "Aug","Sep","Oct","Nov","Dec"];
   var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
   var cDate=new Date()
-  console.log(app)
   var index=1
-  console.log(cDate)
   var st=app.stay_start_date.split(" ")
   var et=app.stay_end_date.split(" ")
  
@@ -1132,7 +1493,6 @@ router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
   while(nextDate.toString().substring(0,15)!=endDate.toString().substring(0,15)){
     var nextnext=nextDate.setDate(nextDate.getDate()+1)
     nextDate=new Date(nextnext)
-    console.log((nextDate.toString().substring(0,15)))
     booked_dates.push({application_id:req.params.id,date:nextDate.toString().substring(0,15)})  
     index++
   }
@@ -1201,88 +1561,161 @@ router.get("/calculate-booked-dates-for-application/:id",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   var appExist
-  const promise=new Promise((resolvePromise,rejectPromise)=>{
-  
-    db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
-      if(err){
-        console.log(err)
-      }
-      const appCount=Object.values(JSON.parse(JSON.stringify(results)))
-      const count=appCount[0].appCount
-      console.log()
-     console.log(count)
-     if(count<1){
-      appExist=false
-      resolvePromise()
-     }else{
-      appExist=true
-      resolvePromise()
-     }
-    })
-  })
-    
   const booked_dates=[]
-  promise.then(()=>{
-  
-    if(appExist){
-      db.query("select* from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
-        if(err){
-          console.log(err)
+  const promise=new Promise(async(resolvePromise,rejectPromise)=>{
+
+    var app=await Application.find({$and:[{"_id":req.params.id}]})
+    var application=app[0]
+    if(application!=null){
+      const prom1=new Promise((resolve1,reject1)=>{
+       
+        var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+        "Aug","Sep","Oct","Nov","Dec"];
+        var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+        var cDate=new Date()
+        
+        var index=0
+        console.log(cDate)
+        var st=application.stay_start_date.split(" ")
+        var et=application.stay_end_date.split(" ")
+       
+       
+        const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+        const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+        var nextDate=new Date(startDate);
+        console.log("endDate:"+endDate)
+        console.log("nextDate:"+nextDate)
+        console.log("endDate greater:"+(endDate>nextDate))
+        while(nextDate.toString().substring(0,15)!=endDate.toString().substring(0,15)){
+          var nextnext=nextDate.setDate(nextDate.getDate()+1)
+          nextDate=new Date(nextnext)
+          console.log((nextDate.toString().substring(0,15)))
+          booked_dates.push({application_id:req.params.id,date:nextDate.toString().substring(0,15)})
+          index++
         }
-        else{
+        
+        resolve1()
+       })
+        
+       prom1.then(()=>{
+        res.json({success:true,booked_dates:booked_dates})
 
-          const application=results[0]
-
-         const prom1=new Promise((resolve1,reject1)=>{
-          
-          var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
-          "Aug","Sep","Oct","Nov","Dec"];
-          var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
-          var cDate=new Date()
-          
-          var index=0
-          console.log(cDate)
-          var st=application.stay_start_date.split(" ")
-          var et=application.stay_end_date.split(" ")
-         
-         
-          const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
-          const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
-          var nextDate=new Date(startDate);
-          console.log("endDate:"+endDate)
-          console.log("nextDate:"+nextDate)
-          console.log("endDate greater:"+(endDate>nextDate))
-          while(nextDate.toString().substring(0,15)!=endDate.toString().substring(0,15)){
-            var nextnext=nextDate.setDate(nextDate.getDate()+1)
-            nextDate=new Date(nextnext)
-            console.log((nextDate.toString().substring(0,15)))
-            booked_dates.push({application_id:req.params.id,date:nextDate.toString().substring(0,15)})
-            index++
-          }
-          
-          resolve1()
-         })
-          
-         prom1.then(()=>{
-          res.json({success:true,booked_dates:booked_dates})
-
-         })
-          }
-        })
-      }else{
-        res.json({success:false,message:"application "+req.params.id+" does not exist"})
-      }
-    })
-
+       })
+    }else{
+      res.json({success:false,message:" app "+req.params.id+" does not exist."})
+    }
+  })
 })
 
 
-router.post("/reserveAndPromptPay/:id",(req,res)=>{
+router.post("/reserveAndPromptPay/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   const id=req.params.id
+  var app=await Application.find({"_id":req.params.id})
+  app=app[0]
+  if(app!=null){
+    
+    var cDate=new Date()
+    var nextDate=new Date(cDate);
+    var index=0
+    while(index<6){
+      var nextnext=nextDate.setDate(nextDate.getDate()+1)
+      nextDate=new Date(nextnext)
+      console.log((nextDate.toString().substring(0,15)))
+      index++
+    }
 
-  db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
+    const paymentDueDate=nextDate.toString().substring(0,15)
+
+    axios.get("http://localhost:3012/admin-applications/checkAvailability/"+req.params.id).then(async(response)=>{
+     
+      console.log(response.data)
+      const conflicting_dates=response.data.conflicting_dates
+
+      if(response.data.conflicting_dates.length>0){
+        res.json({success:true,reserved:false,conflicting_dates:conflicting_dates})
+      }else{
+       index=0
+        if(response.data.paid!=true){
+          console.log("\n\n\n\nupdating")
+          const updatedApp=await Application.update({"_id":id},{$set:{"dateReserved":cDate.toString().substring(0,15),"datePaymentDue":paymentDueDate}})
+          console.log(updatesApp)
+          if(updatedApp.acknowledged==true){
+            //TODO: createbooked
+            axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then((response1)=>{
+              if(response1.data.success){
+                var booked=response1.data.booked_dates
+                booked.map(async(b)=>{
+                    const book=new BookedDate({
+                      date:b.date,
+                      application_id:id
+                    })
+
+                    const saved=await book.save()
+                    console.log(saved)
+                    index++
+                })
+              }
+              res.json({success:true,reserved:true,conflicting_dates:conflicting_dates,no_dates_added:index})
+
+            })
+          }else{
+            console.log("failed")
+          }
+        }
+        /*const updatedApp=await Application.update({"_id":id},{$set:{"dateReserved":cDate.toString().substring(0,15),"datePaymentDue"}})
+        */
+       /*db.query("update ghanahomestay.applications set dateReserved=?,datePaymentDue=?,application_status='RESERVED' where id=?",[cDate.toString().substring(0,15),paymentDueDate,id],(err1,results)=>{
+          if(err1){
+            console.log(err1)
+          }else{
+            var index=0
+           
+               axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+id).then((response1)=>{
+                console.log("allbooked date\n\n\n")
+                console.log(response1.data)
+                const datesToReserve=[]
+                response1.data.booked_dates.map((m)=>{
+                  console.log("in data\n")
+
+                  db.query("select count(*) as appCount from ghanahomestay.booked_dates where date=?",m.date,(err3,results3)=>{
+                    if(err3){
+                      console.log(err3)
+                    }else{
+                      const appCount=Object.values(JSON.parse(JSON.stringify(results3)))
+                      const count=appCount[0].appCount
+                      console.log(count)
+                      if(count<1){
+                        db.query("insert into ghanahomestay.booked_dates (date,application_id) values (?,?)",[m.date,m.application_id],(err2,results2)=>{
+                          if(err2){
+                            console.log(err2)
+                          }
+                        })
+                        index++
+                      }else{
+                        console.log("already_added")
+                      }
+                    }
+
+                  })
+
+                  
+                })
+                res.json({success:true,reserved:true,conflicting_dates:conflicting_dates,no_dates_added:index})
+
+               })
+            
+          }
+        })
+        */
+        
+      }
+    })
+
+  }
+
+  /*db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
 
     const appCount=Object.values(JSON.parse(JSON.stringify(results)))
     const count=appCount[0].appCount
@@ -1361,6 +1794,7 @@ router.post("/reserveAndPromptPay/:id",(req,res)=>{
       res.json({success:false,message:"application "+ id+" does not exist"})
     }
   })
+  */
 })
 
 router.get("/test/:id",(req,res)=>{
@@ -1581,7 +2015,7 @@ router.get("/checkPaymentDeadline/:id",async(req,res)=>{
 
 
 /************************************************************* */
-router.get("/newgetpaymentDueDate",(req,res)=>{
+router.get("/newGetPaymentDueDate",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   var cDate=new Date()

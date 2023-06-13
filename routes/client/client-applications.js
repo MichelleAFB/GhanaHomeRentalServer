@@ -15,6 +15,7 @@ const { User } = require("../../models/User");
 const {Application}=require("../../models/Application")
 const {ApplicationOccupant}=require("../../models/ApplicationOccupant");
 const{ ApplicationReviewImage }=require( "../../models/ApplicationReviewImages");
+const{ApplicationGuest}=require("../../models/ApplicationGuests")
 
 
 const connectdb = async () => {
@@ -260,6 +261,8 @@ router.post("/create-application",(req,res)=>{
 
  //console.log(req.body)
   const applicant=adults.filter((u)=> u.association=="applicant")
+  console.log(applicant)
+  console.log(req.body)
 
   const prom=new Promise(async(resolve,reject)=>{
 
@@ -687,25 +690,21 @@ const apps=[]
 
 
 
-router.get("/application/:id",(req,res)=>{
+router.get("/application/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   console.log("getting application"+ "\n\n")
   console.log(req.params.id)
+  const app=await Application.find({$and:[{"_id":req.params.id}]})
+  const occupants=await ApplicationOccupant.find({$and:[{"application_id":req.params.id}]})
+  if(app!=null && occupants!=null){
+    res.json({application:app[0],occupants:occupants})
 
-  db.query("select * from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
-    if(err){
-      console.log(err)
-    }
-    console.log(results)
-    db.query("select * from ghanahomestay.application_occupants where application_id= ?",req.params.id,(err1,results1)=>{
-      if(err1){
-        console.log(err1)
-      }
-      console.log(results1)
-      res.json({application:results[0],occupants:results1})
-    })
-  })
+  }else{
+    res.json({success:false,message:"app "+req.params.id+" does not exist"})
+  }
+
+
 })
 
 /*
@@ -781,7 +780,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
   
   var app= await Application.find({
     $and:[
-      {"id":req.params.id}
+      {"_id":req.params.id}
     ]
   })
   app=app[0]
@@ -808,7 +807,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
             }if((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED"){
               console.log(app.stay_start_date+" "+activeDate.toString().substring(0,15))
               console.log("ACTIVED")
-              const updated=await Application.update(
+              const updated=await Application.updateOne(
                 {"_id":req.params.id}
                 ,{
                   $set:{
@@ -816,6 +815,9 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                   }
                 })
                 console.log(updated)
+                if(updated.acknowledged){
+                  res.json({success:true,currentlyOccupied:true})
+                }
           
               
             }if(!((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED") && !(app.currentlyOccupied==1 && app.application_status=="CONFIRMED")){
@@ -886,7 +888,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
   })
   */
 })
-
+/*
 router.post("/release-reservation-due-to-unpaid/:id",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
@@ -956,6 +958,54 @@ router.post("/release-reservation-due-to-unpaid/:id",(req,res)=>{
     }
   })
   
+})
+*/
+
+router.post("/release-reservation-due-to-unpaid/:id",async(req,res)=>{
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  console.log("_id"+req.params.id)
+  var app=await Application.find({
+    $and:[{"_id":req.params.id}]
+  })
+  console.log("app")
+  console.log(app)
+  app=app[0]
+  if(app!=null){
+  axios.get("http://localhost:3012/admin-applications/checkPayementDeadline/"+req.params.id).then(async(response)=>{
+    if(response.data.success && response.data.hasDueDate && response.data.passedDue){
+       const released=await Application.updateOne(
+        {"_id":req.params.id},
+        {
+          $set:{"datePaymentDue":"","application_status":"APPLIED","notify_applicant":1,"notify_applicant_message":"Your have missed your payment deadline for this stay.If it was reserved, it has now been dropped."},
+        }
+       )
+       if(released.acknowledge==true){
+        const booked_dates=await BookedDate.find({"application_id":req.params.id})
+        if(booked.length>0){
+          const deleted=await BookedDate.remove({"application_id":"req.params.id"})
+          if(deleted.acknowledge==true){
+            res.json({success:true,remove_bookings:booked_dates.length})
+
+          }else{
+            res.json({success:false,remove_bookings:0})
+          }
+        }
+       }if(response.data.success && response.data.hasDueDate && !response.data.passedDue){
+        res.json({success:true,hasDueDate:response.data.hasDueDate,passDue:response.data.passDue,message:"Due date not meet"})
+      }  if(response.data.success && !response.data.hasDueDate){
+        res.json({success:true,hasDueDate:response.data.hasDueDate,passDue:response.data.passedDue,message:"No payment due date"})
+      }
+      if(!response.data.success){
+        res.json({success:false,hasDueDate:response.data.hasDueDate,passDue:response.data.passedDue,message:"No payment due date"})
+
+      }
+    }
+    
+  })
+}else{
+  res.json({success:false,message:"app "+req.params.id+" does not exist"})
+}
+
 })
 
 
@@ -1331,44 +1381,21 @@ router.get("/guests/:id",(req,res)=>{
 })
 */
 
-router.post("/guests/:id/:occupant_id",(req,res)=>{
+router.get("/guests/:id/:occupant_id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   const id=req.params.id
   const occupant_id=req.params.occupant_id
   const guests=req.body.guests
+  const guest=await ApplicationGuest.find({$and:[{"application_id":id},{"occupant_id":occupant_id}]})
+  if(guest!=null){
+    res.json({success:true,guests:guest})
 
-  
-
-  const prom=new Promise((resolve,reject)=>{
-    db.query("select count(*) as appCount from ghanahomestay.application_occupants where application_id=? && id=?",[id,occupant_id],(err,results)=>{
-      if(err){
-        console.log(err)
-      }else{
-        const appCount=Object.values(JSON.parse(JSON.stringify(results)))
-        const count=appCount[0].appCount
-        console.log(count)
-        if(count>0){
-          console.log("guests")
-
-        }else{
-          res.json({success:false,message:"no occupants with id "+occupant_id})
-        }
-        
-
-        resolve()
-
-      }
-    })
-
-  })
-
-  prom.then(()=>{
-    res.json({success:true,guests:guests})
-
-  })
+  }else{
+    res.json({success:false,message:"no occupants with id "+occupant_id})
+  }
 })
-
+/*
 router.get("/guests/:id/:occupant_id",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
@@ -1421,7 +1448,7 @@ router.get("/guests/:id/:occupant_id",(req,res)=>{
 
   })
 })
-
+*/
 
 
 router.get("/get-all-reviews",(req,res)=>{

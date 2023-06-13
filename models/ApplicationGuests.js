@@ -14,6 +14,9 @@ const applicationGuestsSchema=new mongoose.Schema({
   age:{
     type:Number,
     required:false
+  },phone:{
+    type:String,
+    required:false
   },
   association:{
     type:String,

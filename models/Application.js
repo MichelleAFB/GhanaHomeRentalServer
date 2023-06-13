@@ -110,9 +110,10 @@ const applicationSchema=new mongoose.Schema({
     default:0,
     required:false
   },
-  checkoutTimeout:{
+  checkoutTime:{
     type:String,
-    required:false
+    required:false,
+    default:""
   },
   review:{
     type:String,

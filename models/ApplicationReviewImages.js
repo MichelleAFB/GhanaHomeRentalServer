@@ -8,7 +8,7 @@ const applicationReviewImagesSchema= new mongoose.Schema({
   },
   img_url:{
     type:String,
-    required:false
+    required:true
   }
 })
 

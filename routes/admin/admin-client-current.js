@@ -12,6 +12,7 @@ const mongoose=require("mongoose")
 const uniqueValidator = require('mongoose-unique-validator')
 const {db_config}=require("../../config/db")
 const {Application}=require("../../models/Application")
+const {Maintenance}=require("../../models/Maintenance")
 
 const connectdb = async () => {
   try {
@@ -203,31 +204,17 @@ router.get("/getActiveStatus/:id",(req,res)=>{
 })
 
 /***************************************************MAINTENANCE************* */
-router.get("/maintenance-issues/:id",(req,res)=>{
+router.get("/maintenance-issues/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
+  var app=await Application.find({$and:[{"_id":req.params.id}]})
+  app=app[0]
+  if(app!=null){
+    const maintenance=await Maintenance.find({$and:[{"application_id":req.params.id}]})
+    res.json({success:true,issues:maintenance,no_issues:maintenance.length})
+  }else{
+    res.json({success:false,message:" app "+ req.params.id+" does not exist"})
+  }
 
-  db.query("select count(*) as appCount from ghanahomestay.maintenance where application_id=?",req.params.id,(err,results)=>{
-    if(err){
-      console.log(err)
-    }else{
-      const appCount=Object.values(JSON.parse(JSON.stringify(results)))
-      const count=appCount[0].appCount
-      console.log(count)
-      if(count>0){
-        db.query("select * from ghanahomestay.maintenance where application_id=?",req.params.id,(err1,results1)=>{
-          if(err1){
-            console.log(err1)
-          }else{
-            console.log(results1)
-            res.json({success:true,issues:results1,no_issues:count})
-          }
-      })
-
-      }else{
-        res.json({success:true,issues:[],no_issues:count})
-      }
-    }
-  })
 })
 
 

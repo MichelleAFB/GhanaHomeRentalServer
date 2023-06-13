@@ -17,6 +17,7 @@ const { BookedDate } = require("../models/BookedDates");
 const {Maintenance}=require("../models/Maintenance")
 
 
+
 const connectdb = async () => {
   try {
     const conn = await mongoose.connect(
@@ -206,6 +207,41 @@ router.get("/apps",(req,res)=>{
   
    })
   })
+})
+
+router.post("/reset-password/:email",async(req,res)=>{
+  const password=req.body.password
+  const passwordConfirm=req.body.passwordConfirm
+  const email=req.params.email
+
+  if(password==confirmPassword){
+    var user=await User.find(({$and:[{"email":email}]}))
+    user=user[0]
+    if(user!=null){
+      const saltRounds=10
+      bcrypt.genSalt(saltRounds, function(err, salt) {
+        bcrypt.hash(password, salt,async function(err, hash) {
+          console.log(hash)
+          const update=await User.updateOne({"_id":user.id},{
+            $set:{
+              "hash":hash
+            }
+          })
+          if(update.acknowledged){
+            const updatedUser=await User.find({$and:[{"_id":user.id}]})
+            res.json({success:true,user:updatedUser})
+          }
+
+        }
+        )
+      })
+
+    }
+
+  }else{
+    res.json({success:false,message:"passwords do not match."})
+  }
+
 })
 
 
