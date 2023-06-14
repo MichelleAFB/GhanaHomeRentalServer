@@ -72,7 +72,7 @@ function handleDisconnect() {
     }
   });
 }
-handleDisconnect();
+//handleDisconnect();
 
 
 
