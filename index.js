@@ -17,7 +17,7 @@ import session from 'express-session'
 */
 
 const dotenv = require("dotenv");
-dotenv.config();
+dotenv.config({path:'.env'});
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
