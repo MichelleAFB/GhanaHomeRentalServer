@@ -313,8 +313,8 @@ router.post("/edit-guests/:id/:occupant_id",async(req,res)=>{
 
 router.post("/restricted-individuals/:id/:occupant_id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
-
-  const restricted=req.body.restricted
+  const rest=req.body.restricted
+  const restricted=rest.filter((u) => u.firstname.length>0 )
   console.log(restricted)
   var index=0
  
@@ -328,9 +328,10 @@ router.post("/restricted-individuals/:id/:occupant_id",async(req,res)=>{
       const restrictedInd=await ApplicationRestrictedIndividual.remove({$and:[{"occupant_id":req.params.occupant_id}]})
     }
     restricted.map(async(r)=>{
-      if(r.firstname!='' && lastname!=''){
+      console.log(r.firstname.length)
+      if(r.firstname.length>0 && r.lastname.length>0){
       const rest=new ApplicationRestrictedIndividual({
-        firstnamr:r.firstname,
+        firstname:r.firstname,
         middlename:r.middlename,
         lastname:r.lastname,
         img_url:r.img_url,
@@ -339,8 +340,14 @@ router.post("/restricted-individuals/:id/:occupant_id",async(req,res)=>{
       })
 
       const saved=await rest.save()
-      const restrict=await ApplicationRestrictedIndividual.find({$and:[{"occupant_id":req.params.occupant_id}]})
-      index++
+      console.log(saved)
+      var restrict=await ApplicationRestrictedIndividual.find({$and:[{"_id":saved._id}]})
+      restrict=restrict[0]
+      if(restrict!=null){
+        index++
+      }
+
+      
       if(index==restricted.length-1){
         res.json({success:true,restricted:restrict,no_restricted:index})
       }
