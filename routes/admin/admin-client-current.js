@@ -2,12 +2,40 @@ const express = require("express");
 const router = express.Router();
 const cookie = require("universal-cookie");
 const bcrypt = require("bcryptjs");
-const db_config = require("../../config/newdb");
+//const db_config = require("../../config/db");
 const mysql = require("mysql");
 const cors = require("cors");
 const  axios= require("axios");
 var {db}=require("../../config/newdb")
 const bodyParser = require("body-parser");
+const mongoose=require("mongoose")
+const uniqueValidator = require('mongoose-unique-validator')
+const {db_config}=require("../../config/db")
+const {Application}=require("../../models/Application")
+const {Maintenance}=require("../../models/Maintenance")
+
+const connectdb = async () => {
+  try {
+    console.log("hello");
+    const conn = await mongoose.connect(
+      "mongodb+srv://MAB190011:Mirchoella22@atlascluster.xdodz.mongodb.net/ghanahomestay?retryWrites=true&w=majority",
+      {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      }
+    );
+    return conn
+    console.log(`MONGO DB connected: ${conn.connection.host}`);
+  } catch (err) {
+    //console.log(err.stack);
+    // process.exit(1)
+  }
+};
+var dbmongo
+connectdb().then((conn)=>{
+  //console.log(conn)
+  dbmongo=conn.connection
+})
 
 router.use(bodyParser.json());
 var corsOptions = {
@@ -20,7 +48,12 @@ router.use(cors(corsOptions));
 
 
 function handleDisconnect() {
-  connection = mysql.createConnection(new_db_config);
+  connection = mysql.createConnection(
+    {user:"root",
+    password:"",
+    host:'localhost',
+    port:'3306'}
+  );
 
   connection.connect(function(err) {
     if (err) {
@@ -52,6 +85,56 @@ router.get("/", (req, res) => {
   res.json("Welcome to home stay ghana server : ADMIN APPLICATIONS");
 });
 
+router.get("/getActiveStatus/:id",async(req,res)=>{
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  
+  var app= await Application.find({
+    $and:[
+      {"id":req.params.id}
+    ]
+  })
+  app=app[0]
+  const cDate=new Date()
+            const currDate=cDate.toString().substring(0,15)
+            var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+            "Aug","Sep","Oct","Nov","Dec"];
+            var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+            var st=app.stay_start_date.split(" ")
+            var et=app.stay_end_date.split(" ")
+           //active Date starts 1day before
+            const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+            const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+            var activeDate=new Date(startDate)
+            var nextnext=activeDate.setDate(cDate.getDate()+1)
+            activeDate=new Date(nextnext)
+            console.log("today:"+activeDate.toString().substring(0,15))
+            console.log(app)
+            console.log(app.currentlyOccupied)
+            if(app.currentlyOccupied==1 && app.application_status=="CONFIRMED"){
+            
+              console.log("ALREADY SET")
+              res.json({success:true,currentlyOccupied:true})
+            }if((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED"){
+              console.log(app.stay_start_date+" "+activeDate.toString().substring(0,15))
+              console.log("ACTIVED")
+              const updated=await Application.update(
+                {"id":ObjectId(req.params.id)}
+                ,{
+                  $set:{
+                    "currentlyOccupied":1
+                  }
+                })
+                console.log(updated)
+          
+              
+            }if(!((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED") && !(app.currentlyOccupied==1 && app.application_status=="CONFIRMED")){
+              console.log("ELSE")
+              res.json({success:true,currentlyOccupied:false})
+             
+            }
+
+})
+/*
 router.get("/getActiveStatus/:id",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
@@ -121,31 +204,17 @@ router.get("/getActiveStatus/:id",(req,res)=>{
 })
 
 /***************************************************MAINTENANCE************* */
-router.get("/maintenance-issues/:id",(req,res)=>{
+router.get("/maintenance-issues/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
+  var app=await Application.find({$and:[{"_id":req.params.id}]})
+  app=app[0]
+  if(app!=null){
+    const maintenance=await Maintenance.find({$and:[{"application_id":req.params.id}]})
+    res.json({success:true,issues:maintenance,no_issues:maintenance.length})
+  }else{
+    res.json({success:false,message:" app "+ req.params.id+" does not exist"})
+  }
 
-  db.query("select count(*) as appCount from ghanahomestay.maintenance where application_id=?",req.params.id,(err,results)=>{
-    if(err){
-      console.log(err)
-    }else{
-      const appCount=Object.values(JSON.parse(JSON.stringify(results)))
-      const count=appCount[0].appCount
-      console.log(count)
-      if(count>0){
-        db.query("select * from ghanahomestay.maintenance where application_id=?",req.params.id,(err1,results1)=>{
-          if(err1){
-            console.log(err1)
-          }else{
-            console.log(results1)
-            res.json({success:true,issues:results1,no_issues:count})
-          }
-      })
-
-      }else{
-        res.json({success:true,issues:[],no_issues:count})
-      }
-    }
-  })
 })
 
 

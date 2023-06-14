@@ -6,12 +6,34 @@ const bcrypt = require("bcryptjs");
 const mysql = require("mysql");
 const cors = require("cors");
 var {db}=require("../config/newdb")
-var {new_db_config}=require("../config/newdb")
-
-
-
-
+var {db_config}=require("../config/db")
 const bodyParser = require("body-parser");
+const {User}=require("../models/User")
+const mongoose=require("mongoose")
+
+
+const connectdb = async () => {
+  try {
+    console.log("hello");
+    const conn = await mongoose.connect(
+      "mongodb+srv://MAB190011:Mirchoella22@atlascluster.xdodz.mongodb.net/ghanahomestay?retryWrites=true&w=majority",
+      {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      }
+    );
+    return conn
+    console.log(`MONGO DB connected: ${conn.connection.host}`);
+  } catch (err) {
+    //console.log(err.stack);
+    // process.exit(1)
+  }
+};
+var dbmongo
+connectdb().then((conn)=>{
+ 
+  dbmongo=conn.connection
+})
 
 router.use(bodyParser.json());
 var corsOptions = {
@@ -25,7 +47,12 @@ router.use(cors(corsOptions))
 
 function handleDisconnect() {
   if (db == null || db.state == "disconnected") {
-    db = mysql.createConnection(new_db_config); // Recreate the connection, since
+    db = mysql.createConnection(
+      {user:"root",
+      password:"",
+      host:'localhost',
+      port:'3306'}
+    ); // Recreate the connection, since
     // the old one cannot be reused.
     db.connect(function (err) {
       // The server is either down
@@ -50,7 +77,7 @@ function handleDisconnect() {
   }
 }
 
-handleDisconnect();
+//handleDisconnect();
 
 
 router.get("/",(req,res)=>{
@@ -70,9 +97,7 @@ router.get("/test",(req,res)=>{
   })
 })
 
-//args: firstname,lastname,email,phone,password
 
-const date=new Date
 router.post("/create-user",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
@@ -89,20 +114,26 @@ router.post("/create-user",(req,res)=>{
 
     const saltRounds=10
     bcrypt.genSalt(saltRounds, function(err, salt) {
-      bcrypt.hash(password, salt, function(err, hash) {
+      bcrypt.hash(password, salt,async function(err, hash) {
                 console.log(hash)
+                var dateCreated=new Date()
+                dateCreated=dateCreated.toString().substring(0,15)
+                const user=new User({
+                  firstname:firstname,
+                  lastname:lastname,
+                  phone:phone,
+                  email:email,
+                  hash:hash,
+                  dateCreated:dateCreated,
+                  admin:0
+                })
 
-                db.query("insert into ghanahomestay.users (hash,email,firstname,lastname,phone) values (?,?,?,?,?)",[hash,email,firstname,lastname,phone],(errDB,resultsDB)=>{
-                    if(errDB){
-                      console.log(errDB)
-                    }
-                    console.log(resultsDB)
-                    //TODO:DISABLE MULTIPLESAME EMAIL FOR MULTIPLE PASSWORD
-                    if(resultsDB.affectedRows>0){
-                      res.json({success:true})
-                    }
-
-                })     
+                const saved=await user.save()
+                try{
+                  res.json({success:true})
+                }catch(err){
+                  res.json({success:false})
+                }   
        });
     });
   })
