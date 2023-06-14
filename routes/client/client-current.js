@@ -130,7 +130,7 @@ function handleDisconnect() {
   }
 }
 
-handleDisconnect();
+//handleDisconnect();
 
 router.get("/getActiveStatus/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
