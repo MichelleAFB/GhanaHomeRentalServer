@@ -210,12 +210,14 @@ router.get("/apps",(req,res)=>{
 })
 
 router.post("/reset-password/:email",async(req,res)=>{
+  res.setHeader("Access-Control-Allow-Origin", "*");
   const password=req.body.password
-  const passwordConfirm=req.body.passwordConfirm
+  const passwordConfirm=req.body.confirmPassword
   const email=req.params.email
+  console.log(req.body)
 
-  if(password==confirmPassword){
-    var user=await User.find(({$and:[{"email":email}]}))
+  if(password==passwordConfirm){
+    var user=await User.find(({$and:[{"email":email},{"admin":0}]}))
     user=user[0]
     if(user!=null){
       const saltRounds=10
@@ -236,12 +238,51 @@ router.post("/reset-password/:email",async(req,res)=>{
         )
       })
 
+    }else{
+      res.json({success:false,message:"user with email "+email+" does not exist."})
     }
 
   }else{
     res.json({success:false,message:"passwords do not match."})
   }
+})
 
+router.post("/reset-password/admin/:email",async(req,res)=>{
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  const password=req.body.password
+  const passwordConfirm=req.body.confirmPassword
+  const email=req.params.email
+  console.log(req.body)
+
+  if(password==passwordConfirm){
+    var user=await User.find(({$and:[{"email":email},{"admin":1}]}))
+    user=user[0]
+    if(user!=null){
+      const saltRounds=10
+      bcrypt.genSalt(saltRounds, function(err, salt) {
+        bcrypt.hash(password, salt,async function(err, hash) {
+          console.log(hash)
+          const update=await User.updateOne({"_id":user.id},{
+            $set:{
+              "hash":hash
+            }
+          })
+          if(update.acknowledged){
+            const updatedUser=await User.find({$and:[{"_id":user.id}]})
+            res.json({success:true,user:updatedUser})
+          }
+
+        }
+        )
+      })
+
+    }else{
+      res.json({success:false,message:"user with email "+email+" does not exist."})
+    }
+
+  }else{
+    res.json({success:false,message:"passwords do not match."})
+  }
 })
 
 

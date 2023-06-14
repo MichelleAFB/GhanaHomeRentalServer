@@ -257,12 +257,13 @@ router.post("/create-application",(req,res)=>{
   const ed=req.body.endDate.split(" ")
   const startDate=st[0]+" "+st[1]+" "+st[2]+" "+st[3]
   const endDate=ed[0]+" "+ed[1]+" "+ed[2]+" "+ed[3]
+  console.log(adults)
 
 
  //console.log(req.body)
+ console.log(adults)
   const applicant=adults.filter((u)=> u.association=="applicant")
-  console.log(applicant)
-  console.log(req.body)
+ 
 
   const prom=new Promise(async(resolve,reject)=>{
 
@@ -276,9 +277,9 @@ router.post("/create-application",(req,res)=>{
      ]
     })
     var user=use[0]
-    console.log(use)
+   
 
-    console.log("\n\n\n\n")
+    console.log("\n\n\n\n user")
     console.log(user)
     if(user!=null){
       console.log("user not null")
@@ -338,7 +339,7 @@ router.post("/create-application",(req,res)=>{
     var childSaved
     adults.map(async(o)=>{
 
-      const adult=new ApplicationOccupant({
+     const adult=new ApplicationOccupant({
         firstname:o.firstname,
         lastname:o.lastname,
         age:o.age,
@@ -364,7 +365,7 @@ router.post("/create-application",(req,res)=>{
       })
     }
   setTimeout(()=>{
-    res.json({success:true,application:application})
+   res.json({success:true,application:application})
   },800)
   }else{
     res.json({success:false,message:"no account found"})
@@ -1184,21 +1185,17 @@ router.post("/turnOffNotifyApplicant/:id",async(req,res)=>{
 */
 })
 
-
-//calulate all booked dates for an application
 router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
-  var app=await Application.find({$and:[{"id":req.params.id}]})
+  var app=await Application.find({$and:[{"_id":req.params.id}]})
   if(app!=null){
   app=app[0]
   var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
   "Aug","Sep","Oct","Nov","Dec"];
   var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
   var cDate=new Date()
-  console.log(app)
   var index=1
-  console.log(cDate)
   var st=app.stay_start_date.split(" ")
   var et=app.stay_end_date.split(" ")
  
@@ -1212,7 +1209,6 @@ router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
   while(nextDate.toString().substring(0,15)!=endDate.toString().substring(0,15)){
     var nextnext=nextDate.setDate(nextDate.getDate()+1)
     nextDate=new Date(nextnext)
-    console.log((nextDate.toString().substring(0,15)))
     booked_dates.push({application_id:req.params.id,date:nextDate.toString().substring(0,15)})  
     index++
   }
@@ -1222,59 +1218,11 @@ router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
   res.json({success:false,message:"application "+req.params.id+" does not exist"})
 }
 
-  /*db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
-    if(err){
-        console.log(err)
-        res.json({success:false,error:err})
-    }else{
-      const appCount=Object.values(JSON.parse(JSON.stringify(results)))
-      const count=appCount[0].appCount
-      console.log(count)
-      if(count>0){
-        db.query("select * from ghanahomestay.applications where id=?",req.params.id,(err1,results1)=>{
-          if(err1){
-            console.log(err1)
-            res,json({success:false,error:err1})
-          }else{
-            const app=results1[0]
-            var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
-            "Aug","Sep","Oct","Nov","Dec"];
-            var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
-            var cDate=new Date()
-            console.log(app)
-            var index=1
-            console.log(cDate)
-            var st=app.stay_start_date.split(" ")
-            var et=app.stay_end_date.split(" ")
-           
-           const booked_dates=[]
-           
-            const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
-            const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
-            var nextDate=new Date(startDate);
-            booked_dates.push({application_id:req.params.id,date:startDate.toString().substring(0,15)})
-
-            while(nextDate.toString().substring(0,15)!=endDate.toString().substring(0,15)){
-              var nextnext=nextDate.setDate(nextDate.getDate()+1)
-              nextDate=new Date(nextnext)
-              console.log((nextDate.toString().substring(0,15)))
-              booked_dates.push({application_id:req.params.id,date:nextDate.toString().substring(0,15)})  
-              index++
-            }
-            console.log(booked_dates)
-            res.json({success:true,booked_dates:booked_dates,no_days:index})
-          }
-        })
-
-      }else{
-        res.json({success:false,message:"application "+req.params.id+" does not exist"})
-      }
-
-    }
-  })
-  */
+ 
 })
-/*
+
+
+//calulate all booked dates for an application
 router.get("/allBookingDatesForApplication/:id",(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
@@ -1329,7 +1277,7 @@ router.get("/allBookingDatesForApplication/:id",(req,res)=>{
     }
   })
 })
-*/
+
 /********************************************GUESTS************************ */
 /*
 router.get("/guests/:id",(req,res)=>{

@@ -1976,16 +1976,22 @@ router.get("/checkPaymentDeadline/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   const id=req.params.id
-  const app=await Application.find({
+  try{
+  var app=await Application.find({
     $and:[{"id":id}]
   })
+  app=app[0]
   console.log(app)
   const dueDate=app.datePaymentDue
-  console.log(dueDate)
-  if(dueDate==null){
-      res.json({success:true,message:"no payment due date",hasDueDate:false,passedDue:false})
-  }else
+  console.log("duedate:"+dueDate)
+  
+ 
   if(app!=null){
+    if( app.application_status=='PAYED')
+    {
+      res.json({success:true,message:"no payment due date",hasDueDate:false,passedDue:false,paid:true})
+
+    }else if(dueDate!=null){
     var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
     "Aug","Sep","Oct","Nov","Dec"];
     var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
@@ -1993,11 +1999,11 @@ router.get("/checkPaymentDeadline/:id",async(req,res)=>{
     const currdate=cDate.toString().substring(0,15)
     console.log(dueDate)
     console.log(currdate)
-    const et=app.stay_end_date.split(" ")
+    const et=app.stay_end_date.split(' ')
     const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
-    const dt=dueDate.split(" ")
+    const dt=dueDate.split(' ')
     const dueDateObj=new Date(dt[3],monthnum[months.indexOf(dt[1])-1],dt[2])
-   const currString=currdate.split(" ")
+   const currString=currdate.split(' ')
  
  
     if((currString[0]==dt[0] && currString[1]==dt[1]&& dt[2]==currString[2] && currString[3]==dt[3])  || cDate>=dueDateObj){
@@ -2007,9 +2013,17 @@ router.get("/checkPaymentDeadline/:id",async(req,res)=>{
       res.json({success:true,hasDueDate:true,passedDue:false,current_date:currdate,due_date:dueDate})
     }
   }else{
+    res.json({success:true,message:"no payment due date",hasDueDate:false,passedDue:false,paid:false})
+
+  }
+  }else{
     res.json({success:false,message:"application "+req.params.id+" does not exist"})
 
   }
+  }catch(err){
+  console.log(err)
+    }
+  
 
 })
 
