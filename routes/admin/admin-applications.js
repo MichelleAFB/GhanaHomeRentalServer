@@ -435,39 +435,7 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
     }
   }
   }
-/*
-  db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
-    const appCount=Object.values(JSON.parse(JSON.stringify(results)))
-    const count=appCount[0].appCount
-    console.log(count)
-    
-    if(count>0){
-      if( req.body.message!=null){
-        var cDate=new Date()
-        const currDate=cDate.toString().substring(0,15)
-      db.query("update ghanahomestay.applications set application_status=?,notify_applicant=1,notify_applicant_message=? where id=?",[req.params.status,req.body.message,req.params.id],(err1,results1)=>{
-        if(err1){
-          console.log(err1)
-        }
-        console.log(results1.affectedRows)
-        if(results1.affectedRows==count){
-          res.json({success:true,no_applications:results1.affectRows})
-        }
-        if(results1.affectedRows!=count){
-          res.json({success:false,no_applications:count})
-        }
-      })
-    }
-    if(req.params.status!="APPLIED"&& req.body.message==null){
-      res.json({success:false,message:"setting status for statuses other than 'APPLIED' must include a notification message "})
-  }
-  
-    }else{
-      res.json({success:false,message:"application "+req.params.id+" does not exist"})
-    }
 
-  })
-  */
 })
 
 /********************************************************************************************************************** */

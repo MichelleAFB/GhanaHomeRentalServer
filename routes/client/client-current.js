@@ -430,23 +430,32 @@ router.post("/checkout/:id",async(req,res)=>{
   const checkoutTime=req.body.checkoutTime
   console.log(new Date())
 
-  var app=await Application.find({$and:[{"_id":req.params.id},{"currentlyOccupied":1}]})
+  var app=await Application.find({$and:[{"id":req.params.id},{"currentlyOccupied":1}]})
   app=app[0]
-  
-
   if(app){
-    const update=await Application.updateOne({"_id":req.params.id},{
+    const update=await Application.updateOne({"id":req.params.id},{
       $set:{
         "currentlyOccupied":0,
         "checkoutTime":checkoutTime
       }
     })
-    const app=await Application.find({$and:[{"_id":req.params.id}]})
+    const app=await Application.find({$and:[{"id":req.params.id}]})
     if(update.acknowledged){
       res.json({success:true,application:app})
     }
   }else{
     res.json({success:false,message:" app "+req.params.id+" does not exist."})
+  }
+})
+
+router.get("/review-images/:id",async(req,res)=>{
+  const images=await ApplicationReviewImage.find({$and:[{"application_id":req.params.id}]})
+  const app=await Application.find({$and:[{"_id":req.params.id}]})
+  if(app[0]!=null){
+    res.json({success:true,images:images,no_img:images.length})
+
+  }else{
+    res.json({success:false,messsage:"app "+req.params.id+" does not exist"})
   }
 })
 
