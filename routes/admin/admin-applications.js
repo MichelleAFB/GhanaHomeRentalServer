@@ -978,8 +978,13 @@ router.post("/approve-booking/:id",(req,res)=>{
               }else{
                 var indLength=0
                 var alreadyBooked=0
-                const prom2=new Promise((resolve2,reject2)=>{
+                const prom2=new Promise(async(resolve2,reject2)=>{
                   //Insure no duplicate entries
+                  const starter= new BookedDate({
+                    application_id:req.params.id,
+                    date:response.data.startBuffer
+                  })
+                  const start=await starter.save()
                   our_dates.map(async(o)=>{
                     console.log("916")
                     var alreadybooked=await BookedDate.find({$and:[{"date":o.date},{"application_id":req.params.id}]})
@@ -997,6 +1002,11 @@ router.post("/approve-booking/:id",(req,res)=>{
                       indLength++
                     }
                   })
+                  const ender= new BookedDate({
+                    application_id:req.params.id,
+                    date:response.data.endBuffer
+                  })
+                  const end=await ender.save()
                   resolve2()
                 })
                
@@ -1556,6 +1566,10 @@ router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
   const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
   const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
   var nextDate=new Date(startDate);
+  var start=new Date(startDate);
+  var startBuffer=start.setDate(startDate.getDate()-1)
+  var starterBuffer=new Date(startBuffer)
+
   booked_dates.push({application_id:req.params.id,date:startDate.toString().substring(0,15)})
 
   while(nextDate.toString().substring(0,15)!=endDate.toString().substring(0,15)){
@@ -1564,8 +1578,15 @@ router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
     booked_dates.push({application_id:req.params.id,date:nextDate.toString().substring(0,15)})  
     index++
   }
+  var nextnext=nextDate.setDate(nextDate.getDate()+1)
+  nextDate=new Date(nextnext)
+  var endBuffer=new Date(nextDate)
+  endBuffer=endBuffer.toString().substring(0,15)
+  starterBuffer=starterBuffer.toString().substring(0,15)
+  console.log("end:"+endBuffer)
+
   console.log(booked_dates)
-  res.json({success:true,booked_dates:booked_dates,no_days:index})
+  res.json({success:true,no_days:index,startBuffer:starterBuffer,endBuffer:endBuffer,booked_dates:booked_dates})
 }else{
   res.json({success:false,message:"application "+req.params.id+" does not exist"})
 }
