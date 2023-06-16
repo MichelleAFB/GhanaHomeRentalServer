@@ -550,7 +550,7 @@ router.get("/checkAvailability/:id",async(req,res)=>{
         ]})
         console.log(payedApp)
         if(payedApp!=null && conflicting_dates.length==0){
-            res.json({success:true,paid:true,conflicting_dates:conflicts,no_days:conflicting_dates.length-2})   
+            res.json({success:true,paid:true,conflicting_dates:conflicts,no_days:conflicting_dates.length})   
         }else{
            res.json({success:true,paid:false,conflicting_dates:conflicts,no_days:conflicting_dates.length-2})
         }

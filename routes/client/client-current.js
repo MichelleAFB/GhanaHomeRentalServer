@@ -430,11 +430,12 @@ router.post("/checkout/:id",async(req,res)=>{
   const checkoutTime=req.body.checkoutTime
   console.log(new Date())
 
-  var app=await Application.find({$and:[{"_id":req.body.id},{"currentlyOccupied":1}]})
+  var app=await Application.find({$and:[{"_id":req.params.id},{"currentlyOccupied":1}]})
   app=app[0]
+  
 
   if(app){
-    const update=await Application.updateOne({"_id":req.body.id},{
+    const update=await Application.updateOne({"_id":req.params.id},{
       $set:{
         "currentlyOccupied":0,
         "checkoutTime":checkoutTime
