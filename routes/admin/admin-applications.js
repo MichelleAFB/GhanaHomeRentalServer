@@ -92,7 +92,7 @@ router.get("/", (req, res) => {
   res.json("Welcome to home stay ghana server : ADMIN APPLICATIONS");
 });
 
-router.get("/application/:id",(req,res)=>{
+router.get("/application/:id",(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   db.query("select * from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
@@ -102,7 +102,7 @@ router.get("/application/:id",(req,res)=>{
 
 
 //get all client applications for client
-router.get("/get-all-applications/:firstname/:lastname/:email",(req,res)=>{
+router.get("/get-all-applications/:firstname/:lastname/:email",(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   console.log("get all apps")
@@ -373,7 +373,7 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
       }else{
         res.json({success:false,no_applications:0})
       }
-    }else    if(req.params.status=="CONFIRMED"){
+    }else  if(req.params.status=="CONFIRMED"){
       var currDate=new Date()
       currDate=currDate.toString().substring(0,15)
       
@@ -395,7 +395,30 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
           res.json({success:false,no_applications:0})
         }
       
-    }else{ 
+    }else if(req.params.status=="DENIED"){
+      var currDate=new Date()
+      currDate=currDate.toString().substring(0,15)
+      const application=await Application.updateOne({"_id":req.params.id},{
+        $set:{
+          "application_status":"DENIED",
+          "notify_applicant":1,
+          "notify_applicant_message":req.body.message,
+          "dateDenied":currDate,
+          "approved":-1
+        }
+      })
+     
+      const updatedApp=await Application.find({$and:[{"_id":req.params.id}]})
+      console.log(application)
+      if(application.acknowledged==true){
+        res.json({success:true,no_applications:application.matchedCount,application:updatedApp})
+      }else{
+        res.json({success:false,no_applications:0})
+      }
+    
+
+    }
+    else{ 
     
     const application=await Application.updateOne(
       {"id":req.params.id},
@@ -736,11 +759,54 @@ router.get("/check",async(req,res)=>{
 
 
 
-router.post("/deny-booking/:id",(req,res)=>{
+router.post("/deny-booking/:id",async(req,res)=>{ 
+   res.setHeader("Access-Control-Allow-Origin","*")
   /**Unsets confirmedApprove and approve to -1 */
-  res.setHeader("Access-Control-Allow-Origin", "*");
+ 
 
-  db.query("select count(*) as appCount from ghanahomestay.applications where id=? ",req.params.id,(err,results)=>{
+  var app=await Application.find({$and:[{"_id":req.params.id}]})
+  app=app[0]
+  if(app!=null){
+    console.log(app)
+    if(app.approved!=-1 || app.confirmedApproved!=-1){
+      const curr=new Date()
+          const currDate=curr.toString().substring(0,15)
+          const updateApp=await Application.updateOne({"_id":req.params.id},{
+            $set:{"approved":-1,"approved":-1,"currentlyOccupied":-1}
+          })
+    
+      
+      var updated=await Application.find({$and:[{"_id":req.params.id}]})
+      updated=updated[0]
+      console.log("\n\n\nupdate approved")
+      console.log(updateApp)
+      console.log(updated)
+      if(updateApp.acknowledged){
+        const dates=await BookedDate.find({$and:[{"application_id":req.params.id}]})
+        const remove=await BookedDate.remove({"application_id":req.params.id})
+        console.log(remove)
+        var removed=await BookedDate.find({"application_id":req.params.id})
+        removed=removed[0]
+        console.log("\n\n\nremove")
+        console.log(remove)
+        if(removed==null){
+          axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+req.params.id+"/DENIED",{message:"Your reservation for stay ["+app.stay_start_date+" through "+app.stay_end_date+"] is denied."}).then((response)=>{
+            console.log(response.data)
+            if(response.data.success){
+              res.json({success:true,changed:remove.deleteCount,canceled_dates:dates})
+            }else{
+              res.json({success:false,message:"application_status not set"})
+            }
+          })
+
+        }
+
+      }
+    }
+  }else{
+    res.json({success:false,message:"app "+req.params.id +" does not exist."})
+  }
+  /*db.query("select count(*) as appCount from ghanahomestay.applications where id=? ",req.params.id,(err,results)=>{
     const appCount=Object.values(JSON.parse(JSON.stringify(results)))
     const count=appCount[0].appCount
     console.log()
@@ -787,7 +853,7 @@ router.post("/deny-booking/:id",(req,res)=>{
 
     }
     */
-
+/*
         }else{
           //already-canceld
           console.log("already Canceld\n\n")
@@ -813,9 +879,10 @@ router.post("/deny-booking/:id",(req,res)=>{
    }
 
   })
+  */
 })
 //helper to cancel bookings
-router.post("/remove-booked-dates/:id",(req,res)=>{
+router.post("/remove-booked-dates/:id",(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   db.query("select count(*) as appCount from ghanahomstay.applications where id=?",req.params.id,(err1,results1)=>{
@@ -855,8 +922,9 @@ router.post("/remove-booked-dates/:id",(req,res)=>{
   })
 })
 
-router.post("/approve-booking/:id",(req,res)=>{
-  res.setHeader("Access-Control-Allow-Origin", "*");
+router.post("/approve-booking/:id",(req,res)=>{  
+  res.setHeader("Access-Control-Allow-Origin","*")
+  
 
   axios.get("https://ghanahomestayserver.onrender.com/admin-applications/checkAvailability/"+req.params.id).then(async(response)=>{
    
@@ -1220,7 +1288,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                 $set:{"currentlyOccupied":0}
               })
 
-              axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants ch"})
+              axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants checkedout."})
               
 
             }
@@ -1459,7 +1527,7 @@ router.get("/getNoDays/:id",async(req,res)=>{
 })
 
 /*
-router.post("/approve-booking/:id",(req,res)=>{
+router.post("/approve-booking/:id",(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
   db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
 
   })
@@ -1557,7 +1625,7 @@ router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
 
 //help:'/approve-booking
 //calulates an array of all dates a reservation takes up
-router.get("/calculate-booked-dates-for-application/:id",(req,res)=>{
+router.get("/calculate-booked-dates-for-application/:id",(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   var appExist
@@ -1797,7 +1865,7 @@ router.post("/reserveAndPromptPay/:id",async(req,res)=>{
   */
 })
 
-router.get("/test/:id",(req,res)=>{
+router.get("/test/:id",(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   var flagApproved=true
@@ -2029,7 +2097,7 @@ router.get("/checkPaymentDeadline/:id",async(req,res)=>{
 
 
 /************************************************************* */
-router.get("/newGetPaymentDueDate",(req,res)=>{
+router.get("/newGetPaymentDueDate",(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   var cDate=new Date()
