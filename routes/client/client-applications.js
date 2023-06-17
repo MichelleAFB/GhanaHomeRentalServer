@@ -998,6 +998,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
     ]
   })
   app=app[0]
+  console.log(app)
   const cDate=new Date()
             const currDate=cDate.toString().substring(0,15)
             var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
@@ -1061,6 +1062,8 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                 })
                 const app=await Application.find({$and:[{"_id":req.params.id}]})
                   res.json({success:true,currentlyOccupied:false,app:app,updated:update})
+              }else{
+                res.json({success:true,currentlyOccupied:false})
               }
               
               
