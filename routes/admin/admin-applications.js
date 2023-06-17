@@ -982,6 +982,8 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                 })
                 const app=await Application.find({$and:[{"_id":req.params.id}]})
                   res.json({success:true,currentlyOccupied:false,app:app,updated:update})
+              }else{
+                res.json({success:false,currentlyOccupied:false})
               }
               
               
