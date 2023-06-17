@@ -776,6 +776,17 @@ router.get("/getActiveStatus/:id",(req,res)=>{
 })
 */
 
+router.get("/active",async(req,res)=>{
+  const apps=await Application.find({})
+
+  apps.map((a)=>{
+    console.log(a)
+    axios.get("http://localhost:3012/client-applications/getActiveStatus/"+a._id).then((response)=>{
+      console.log(response)
+    })
+  })
+})
+
 router.get("/getActiveStatus/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
   
@@ -808,7 +819,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
             }if((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED"){
               console.log(app.stay_start_date+" "+activeDate.toString().substring(0,15))
               console.log("ACTIVED")
-              const updated=await Application.updateOne(
+             /* const updated=await Application.updateOne(
                 {"_id":req.params.id}
                 ,{
                   $set:{
@@ -819,6 +830,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                 if(updated.acknowledged){
                   res.json({success:true,currentlyOccupied:true})
                 }
+                */
           
               
             }if(!((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED") && !(app.currentlyOccupied==1 && app.application_status=="CONFIRMED")){
@@ -1014,133 +1026,129 @@ router.post("/release-reservation-due-to-unpaid/:id",async(req,res)=>{
 //TODO: fix can send response after sender
 //Client can only set certain status from their end APPLIED,PAID
 //admin can set APPROVED and RESERVED
+
+
+
 router.post("/setStatus/:id/:status",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
-
-  console.log(req.params.status)
-  console.log(req.body)
-  var app=await Application.find({
-    $and:[{"_id":req.params.id}]
-  })
-
-  console.log(app)
-   app=app[0]
-   if(app!=null && app.status!=req.params.status && (req.params.status=="APPLIED" || req.params.status=="PAYED")){
-    if(req.params.status=="PAYED"&& req.body.message!=null){
-      var cDate=new Date()
-      const currDate=cDate.toString().substring(0,15)
-      const updatePaid=await Application.update(
-        {"_id":req.params.id},
-        {
-          $set:{"application_status":req.params.status,"notify_admin":1,"notify_admin_message":req.body.message,"datePaid":currDate}
-        }
-      )
-      if(updatePaid.acknowledged==true){
-        res.json({success:true,no_applications:1})
-
-      }else{
-        res.json({success:false,no_applications:0})
-
-      }
-    /*db.query("update ghanahomestay.applications set application_status=?,notify_admin=1,notify_admin_message=?,datePaid=? where id=?",[req.params.status,req.body.message,currDate,req.params.id],(err1,results1)=>{
-      if(err1){
-        console.log(err1)
-      }
-      console.log(results1.affectedRows)
-      if(results1.affectedRows==count){
-        res.json({success:true,no_applications:results1.affectRows})
-      }
-      if(results1.affectedRows!=count){
-        res.json({success:false,no_applications:count})
-      }
-    })
-    */
-  }
   if(req.params.status!="APPLIED"&& req.body.message==null){
     res.json({success:false,message:"setting status for statuses other than 'APPLIED' must include a notification message "})
-}
-    if(req.params.status!="APPLIED"&& req.params.status!="PAYED"&&req.body.message!=null && app!=null){
-      var cDate=new Date()
-      const currDate=cDate.toString().substring(0,15)
-      const updateElse=await Application.update({"_id":req.params.id},{$set:{"application_status":req.params.status,"notify_admin":1,"notify_admin_message":req.body.message}})
-      if(updateElse.acknowledged==true){
-        res.json({success:true,no_applications:1})
+}else{
+    if(req.params.status=="RESERVED"){
+      var currDate=new Date()
+      currDate=currDate.toString().substring(0,15)
+      axios.get("https://ghanahomestayserver.onrender.com/admin-applications/newGetPaymentDueDate").then(async(response)=>{
+        const application=await Application.updateOne(
+          {"_id":req.params.id},
+          {$set:{
+            "application_status":req.params.status,
+            "notify_applicant":1,
+            "notify_applicant_message":req.body.message,
+            "dateReserved":currDate,
+            "datePaymentDue":response.data
+          }}
+        )
+      })
+      if(application.acknowledged==true){
+        res.json({success:true,no_applications:application.matchedCount})
       }else{
         res.json({success:false,no_applications:0})
-
       }
-    }
-  }if(app!=null && app.application_status==req.params.status ){
-    res.json({success:true, message:"status already set for"+req.params.status})
-
-  }if(app==null){
-    res.json({success:false,message:" app "+req.params.id+" does not exist"})
-  }
-   /* db.query("update ghanahomestay.applications set application_status=?,notify_admin=1,notify_admin_message=? where id=?",[req.params.status,req.body.message,req.params.id],(err1,results1)=>{
-      if(err1){
-        console.log(err1)
-      }
-      console.log(results1.affectedRows)
-      if(results1.affectedRows==count){
-        res.json({success:true,no_applications:results1.affectRows})
-      }
-      if(results1.affectedRows!=count){
-        res.json({success:false,no_applications:count})
-      }
-    })
-  }
-
-   }
- /* db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
-    const appCount=Object.values(JSON.parse(JSON.stringify(results)))
-    const count=appCount[0].appCount
-    console.log(count)
-    if(count>0){
-
-      if(req.params.status=="PAYED"&& req.body.message!=null){
-        var cDate=new Date()
-        const currDate=cDate.toString().substring(0,15)
-      db.query("update ghanahomestay.applications set application_status=?,notify_admin=1,notify_admin_message=?,datePaid=? where id=?",[req.params.status,req.body.message,currDate,req.params.id],(err1,results1)=>{
-        if(err1){
-          console.log(err1)
+    }else  if(req.params.status=="CONFIRMED"){
+      var currDate=new Date()
+      currDate=currDate.toString().substring(0,15)
+      
+        const application=await Application.updateOne(
+          {"_id":req.params.id},
+          {$set:{
+            "application_status":req.params.status,
+            "notify_applicant":1,
+            "notify_applicant_message":req.body.message,
+            "dateApproved":currDate,
+            "approved":1
+          }}
+        )
+        const updatedApp=await Application.find({$and:[{"_id":req.params.id}]})
+        console.log(application)
+        if(application.acknowledged==true){
+          res.json({success:true,no_applications:application.matchedCount,application:updatedApp})
+        }else{
+          res.json({success:false,no_applications:0})
         }
-        console.log(results1.affectedRows)
-        if(results1.affectedRows==count){
-          res.json({success:true,no_applications:results1.affectRows})
-        }
-        if(results1.affectedRows!=count){
-          res.json({success:false,no_applications:count})
+      
+    }else if(req.params.status=="DENIED"){
+      var currDate=new Date()
+      currDate=currDate.toString().substring(0,15)
+      const application=await Application.updateOne({"_id":req.params.id},{
+        $set:{
+          "application_status":"DENIED",
+          "notify_applicant":1,
+          "notify_applicant_message":req.body.message,
+          "dateDenied":currDate,
+          "approved":-1
         }
       })
-    }
-    if(req.params.status!="APPLIED"&& req.body.message==null){
-      res.json({success:false,message:"setting status for statuses other than 'APPLIED' must include a notification message "})
-  }
-      if(req.params.status!="APPLIED"&& req.params.status!="PAYED"&&req.body.message!=null){
-        var cDate=new Date()
-        const currDate=cDate.toString().substring(0,15)
-      db.query("update ghanahomestay.applications set application_status=?,notify_admin=1,notify_admin_message=? where id=?",[req.params.status,req.body.message,req.params.id],(err1,results1)=>{
-        if(err1){
-          console.log(err1)
-        }
-        console.log(results1.affectedRows)
-        if(results1.affectedRows==count){
-          res.json({success:true,no_applications:results1.affectRows})
-        }
-        if(results1.affectedRows!=count){
-          res.json({success:false,no_applications:count})
+     
+      const updatedApp=await Application.find({$and:[{"_id":req.params.id}]})
+      console.log(application)
+      if(application.acknowledged==true){
+        res.json({success:true,no_applications:application.matchedCount,application:updatedApp})
+      }else{
+        res.json({success:false,no_applications:0})
+      }
+    
+
+    }else if(req.params.status=="CHECKEDOUT"){
+      var currDate=new Date()
+      currDate=currDate.toString().substring(0,15)
+      const application=await Application.updateOne({"_id":req.params.id},{
+        $set:{
+          "application_status":req.params.status,
+          "notify_admin":1,
+          "notify_admin_message":req.body.message,
+          "checkoutTime":new Date(),
+          "currentlyOccupied":0
         }
       })
-    }
-   
-    }
+     
+      const updatedApp=await Application.find({$and:[{"_id":req.params.id}]})
+      console.log(application)
+      if(application.acknowledged==true){
+        res.json({success:true,no_applications:application.matchedCount,application:updatedApp})
+      }else{
+        res.json({success:false,no_applications:0})
+      }
+    
 
-  })
-  */
-  
+    }
+    else{ 
+    
+    const application=await Application.updateOne(
+      {"id":req.params.id},
+      {$set:{
+        "application_status":req.params.status,
+        "notify_applicant":1,
+        "notify_applicant_message":req.body.message
+      }}
+    )
+    if(application.acknowledged==true){
+      res.json({success:true,no_applications:application.matchedCount})
+    }else{
+      res.json({success:false,no_applications:0})
+    }
+  }
+  }
+
 })
 
+router.get("/application/:id",async(req,res)=>{
+  console.log(req.params.id)
+  var app=await Application.find({$and:[{"id":req.params.id}]})
+  console.log(app)
+  var appUpdated=await Application.find({$and:[{"id":req.params.id}]})
+  res.json({success:true,application:appUpdated})
+})
 
 //turns off notify_applicant after application has seen notification update
 router.post("/turnOffNotifyApplicant/:id",async(req,res)=>{
