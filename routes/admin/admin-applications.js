@@ -352,7 +352,7 @@ router.get("/active",async(req,res)=>{
 
   apps.map((a)=>{
     
-    axios.get("http://localhost:3012/admin-applications/getActiveStatus/"+a._id).then((response)=>{
+    axios.get("http://localhost:3012/admin-applications/ActiveStatus/"+a._id).then((response)=>{
       console.log(response.data)
       
       console.log("\n\n")
@@ -912,6 +912,88 @@ router.post("/remove-booked-dates/:id",async(req,res)=>{  res.setHeader("Access-
  
 })
 
+router.get("/getActiveStatus/:id",async(req,res)=>{
+  var app= await Application.find({
+    $and:[
+      {"_id":req.params.id}
+    ]
+  })
+  app=app[0]
+  const cDate=new Date()
+            const currDate=cDate.toString().substring(0,15)
+            var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+            "Aug","Sep","Oct","Nov","Dec"];
+            var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+            var st=app.stay_start_date.split(" ")
+            var et=app.stay_end_date.split(" ")
+           //active Date starts 1day before
+            const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+            const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+            var activeDate=new Date(startDate)
+            var nextnext=activeDate.setDate(cDate.getDate()+1)
+            activeDate=new Date(nextnext)
+            console.log("today:"+activeDate.toString().substring(0,15))
+            
+            var currentlyWrong=false
+            const prom=new Promise(async(resolve,reject)=>{
+              if(app.application_status=='CONFIRMED' && app.approved==1){
+                console.log("check if date is valie")
+                if((cDate>=startDate && cDate<=endDate) && (activeDate>=startDate && activeDate<=endDate) &&app.currentlyOccupied!=1){
+                  console.log("confirmed and in range:CHANGE TO ACTUVE")
+                   const update=await Applicant.updateOne({"_id":req.params.id},{
+                    $set:[{"currentlyOccupied":1}]
+                   })
+                   console.log(update)
+                   res.json({success:true,currentlyOccupied:true})
+                }else if((cDate>=startDate && cDate<=endDate) && (activeDate>=startDate && activeDate<=endDate) &&app.currentlyOccupied==1){
+                  res.json({success:true,currentlyOccupied:true})
+
+                }
+                else{
+                  //TODO:EITHER CHANGED TO CHECKEDOUT OUT IF PERSON FORGOT TO CHECKOUT OR DONT
+                   if(cDate>endDate &&  (activeDate>=start && activeDate<=endDate)  ){
+                  console.log("confirmed but but person forgot to checkout")
+                 axios.get("http://localhost:3012/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
+                    if(response.data.success){
+                      console.log(app.stay_start_date+" changed to checkout by force")
+                      res.json({success,currentlyOccupied:false})
+                    }else{
+                     res.json({success:false,message:"could not change status"})
+                    }
+                  })
+                  
+                }else if( cDate<startDate ){
+                  res.json({success:true,currentlyOccupied:false})
+
+                }else{
+                  const update=await Application.updateOne(
+                    {"_id":req.params.id},{
+                      $set:[
+                        {"currentlyOccupied":0}
+                      ]
+                    })
+
+                }
+                }
+              }else if(app.application_status!="CONFIRMED" && app.currentlyOccupied==1){
+                //if app is "confirmed but somehow not approved"
+                const update=await Application.updateOne({"_id":req.params.id},{
+                  $set:{"currentlyOccupied":0}
+                })
+                const app=await Application.find({$and:[{"_id":req.params.id}]})
+                  res.json({success:true,currentlyOccupied:false,app:app,updated:update})
+              }
+              
+              
+              
+              
+             
+
+            })
+        
+  
+})
+
 
 router.post("/approve-booking/:id",(req,res)=>{  
   res.setHeader("Access-Control-Allow-Origin","*")
@@ -947,7 +1029,7 @@ router.post("/approve-booking/:id",(req,res)=>{
         console.log("booked dates")
         console.log(booked_dates)
         if(booked_dates.length>0){
-          axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then((response)=>{
+          axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
             if(response.data.success){
               const our_dates=response.data.booked_dates
               booked_dates.map((b)=>{
@@ -1031,7 +1113,7 @@ router.post("/approve-booking/:id",(req,res)=>{
         }else{
           var indLength=0
                 var alreadyBooked=0
-          axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then((response)=>{
+          axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
             if(response.data.success){
               const our_dates=response.data.booked_dates
               console.log("\n\nour date")
@@ -1232,7 +1314,83 @@ router.post("/approve-booking/:id",(req,res)=>{
   }
   })
 })
+/*
+router.get("/activeStatus/:id",(req,res)=>{
 
+            const prom=new Promise(async(resolve,reject)=>{
+
+
+              var app= await Application.find({
+                $and:[
+                  {"_id":req.params.id}
+                ]
+              })
+              app=app[0]
+              const cDate=new Date()
+                        const currDate=cDate.toString().substring(0,15)
+                        var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+                        "Aug","Sep","Oct","Nov","Dec"];
+                        var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+                        var st=app.stay_start_date.split(" ")
+                        var et=app.stay_end_date.split(" ")
+                       //active Date starts 1day before
+                        const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+                        const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+                        var activeDate=new Date(startDate)
+                        var nextnext=activeDate.setDate(cDate.getDate()+1)
+                        activeDate=new Date(nextnext)
+                        console.log("today:"+activeDate.toString().substring(0,15))
+                        console.log(app)
+                        console.log(app.currentlyOccupied)
+                        var currentlyWrong=false
+
+                        
+              if(app.application_status=='CONFIRMED' && app.approved==1 && app.currentlyOccupied!=1){
+                console.log("check if date is valie")
+                if((cDate>=startDate && cDate<=endDate) && (activeDate>=start && activeDate<=endDate)){
+                  console.log("confirmed and in range:CHANGE TO ACTUVE")
+                  //TODO:changed to currentltOccupied
+                }else{
+                  //TODO:EITHER CHANGED TO CHECKEDOUT OUT IF PERSON FORGOT TO CHECKOUT OR DONT
+                   if(cDate>endDate &&  (activeDate>=start && activeDate<=endDate)  ){
+                  console.log("confirmed but but person forgot to checkout")
+                /*  axios.get("http://localhost:3012/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
+                    if(response.data.success){
+                      console.log(app.stay_start_date+" changed to checkout by force")
+                      //TODO res.json({success,currentlyOccupied:false})
+                    }else{
+                      //TODO:res.json({success:true,currentlyOccupied,message:"shouldve been changed to checkout but error"})
+                    }
+                  })
+                  
+                }else if(app.currentlyOccupied==1 && app.approved==1 && (cDate>=startDate && cDate<=endDate) && (activeDate>=start && activeDate<=endDate)){
+                  res.json({success:true,currentlyOccupied:true})
+
+                }else{
+                  const update=await Application.updateOne(
+                    {"_id":req.params.id},{
+                      $set:[
+                        {"currentlyOccupied":0}
+                      ]
+                    })
+
+                }
+                }
+              }else{
+                  res.json({success:true,currentlyOccupied:false})
+              }
+              
+              
+              
+              
+             
+
+            })
+        
+  
+})
+*/
+/*
 router.get("/getActiveStatus/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
   
@@ -1322,7 +1480,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
 
 })
 
-
+*/
 //calulate all booked dates for an application
 router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
