@@ -1294,24 +1294,24 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
               res.json({success:true,currentlyOccupied:false})
              
             }
-          }else if((activeDate>=startDate && activeDate<=endDate) && !(cDate>=activeDate && cDate<=endDate) && app.currentlyOccupied==1 && app.application_status=="CONFIRMED"){
+          }else if((activeDate>=startDate && activeDate<=endDate) && !(cDate>endDate || cDate<startDate)){
             console.log()
             console.log("\n\n\n")
             console.log(app.stay_start_date+" correcting")
             console.log("\n\n\n")
+            if(app.currentlyOccupied==1 && app.application_status=="CONFIRMED"){
             const setNotCurr=await Application.updateOne({"_id":req.params.id},{
               $set:[{"currentlyOccupied":0}]
             })
             console.log(setNotCurr)
-           if(app.checkoutTime=="" || app.checkoutTime==''){
-           
-
+           if(app.checkoutTime=="" || app.checkoutTime=='' && cDate>endDate){
           axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/", {message:"Occupants checkedout."}).then((response)=>{
               res.json({Success:true,currentlyOccupied:false})
              })
-           }else{
+           }else if(app.checkoutTime=="" || app.checkoutTime=='' && cDate<startDate){
             res.json({success:true,currentlyOccupied:false})
            }
+          }
            
           }else if((activeDate>=startDate && activeDate<=endDate) && !(cDate>=activeDate && cDate<=endDate) && app.currentlyOccupied!=1){
           res.json({success:true,currentlyOccupied:false})
@@ -1321,186 +1321,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
 
 
 })
-/*
 
-
-
-//get number of days
-router.get("/getNoDays/:id",async(req,res)=>{
-  res.setHeader("Access-Control-Allow-Origin", "*");
-
-  const app=await Application.find({$and:[{"_id":req.params.id}]})
-    const application=app[0]
-    if(application!=null){
-    console.log("start:"+application.stay_start_date)
-    console.log("end:"+application.stay_end_date)
-    const s=application.stay_start_date.toString()
-    const e=application.stay_end_date.toString()
-    const start=s.split(" ")
-    const end=e.split(" ")
-      console.log(end)
-      var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
-            "Aug","Sep","Oct","Nov","Dec"];
-      var daysInMonth=[31,28,31,30,31,30,31,31,30,31,30,31]
-      const currentDate=new Date()
-      const currentYear=currentDate.getFullYear()
-     
-      const leapYears=[2024,2028,2032,2036,2040,2044,2048,2052]
-  
-    if(start[3]==end[3]){
-     
-      const startMonth=months.indexOf(start[1])
-      const endMonth=months.indexOf(end[1])
-  
-      const diffMonth=endMonth-startMonth
-  
-      var diffDays
-      console.log("startMonth:"+startMonth+" end month:"+endMonth)
-      //same month
-      if(diffMonth==0){
-        
-        console.log("under a month: no days="+diffDays) 
-        if(leapYears.includes(parseInt(end[3]))){
-          
-        }else{
-          diffDays=end[2]-start[2]
-          console.log(diffDays)
-          res.status(200).json({success:true,days:diffDays})
-        }
-      }
-      //different month
-      else{
-        //diff month
-        console.log("diffmonth")
-        if(leapYears.includes(parseInt(end[3]))){
-          months[1]=months[1]+1
-          var startString
-          var endString
-          const sDays=daysInMonth[months.indexOf(start[1])]
-          const eDays=daysInMonth[months.indexOf(end[1])]
-          console.log("sday:"+sDays);
-          console.log("enddays:"+eDays)
-          console.log(parseInt(start[2].substring(0,1)))
-          if(parseInt(start[2].substring(0,1))==0){
-            startString=parseInt(start[2].substring(1,2))
-          }else{
-            startString=parseInt(start[2])
-  
-          }
-          if(parseInt(end[2].substring(0,1))==0){
-            endString=parseInt(end[2].substring(1,2))
-          }else{
-            endString=parseInt(end[2])
-          }
-          console.log(startString)
-          var stDays
-          console.log(startString==parseInt(daysInMonth[months.indexOf(start[1])]))
-          if(startString==parseInt(daysInMonth[months.indexOf(start[1])])){
-            stDays=1
-          }else{
-            console.log(sDays-startString)
-            stDays=sDays-startString
-          }
-          console.log("stDays:"+stDays)
-          const enDays=endString
-          console.log("endays:"+enDays)
-          var totalDays=enDays+stDays
-          console.log("TOTAL:"+totalDays)
-          if(diffMonth>1){
-            var index=endMonth-startMonth+1
-            while(index<endMonth){
-              console.log("totalDay:"+totalDays)
-              totalDays=totalDays+daysInMonth[months.indexOf(months[index])]
-              index++
-            }
-            console.log("HERE1")
-           
-            const total=totalDays
-            res.json({success:true,days:total})
-            return total
-            sessionStorage.setItem("noDays",total)
-          }else{
-            console.log("HERERER")
-            res.json({success:true,days:totalDays})
-            return totalDays
-            sessionStorage.setItem("noDays",totalDays)
-          }
-          
-        }else{
-          var startString
-          var endString
-          const sDays=daysInMonth[months.indexOf(start[1])]
-          const eDays=daysInMonth[months.indexOf(end[1])]
-          console.log("sday:"+sDays);
-          console.log("enddays:"+eDays)
-          console.log(parseInt(start[2].substring(0,1)))
-          if(parseInt(start[2].substring(0,1))==0){
-            startString=parseInt(start[2].substring(1,2))
-          }else{
-            startString=parseInt(start[2])
-  
-          }
-          if(parseInt(end[2].substring(0,1))==0){
-            endString=parseInt(end[2].substring(1,2))
-          }else{
-            endString=parseInt(end[2])
-          }
-          console.log(startString)
-          var stDays
-          console.log(startString==parseInt(daysInMonth[months.indexOf(start[1])]))
-          if(startString==parseInt(daysInMonth[months.indexOf(start[1])])){
-            stDays=1
-          }else{
-            console.log(sDays-startString)
-            stDays=sDays-startString
-          }
-          console.log("stDays:"+stDays)
-          const enDays=endString
-          console.log("endays:"+enDays)
-          var totalDays=enDays+stDays
-          console.log("total days:"+totalDays)
-          if(diffMonth>1){
-            var index=endMonth-startMonth+1
-            while(index<endMonth){
-              console.log("totalDay:"+totalDays)
-              totalDays=totalDays+daysInMonth[months.indexOf(months[index])]
-              index++
-            }
-            console.log("nes totalDays"+totalDays)
-            sessionStorage.setItem("noDays",totalDays)
-           
-            const total=totalDays
-            res.json({success:true,days:totalDays})
-            return total
-          }else{
-            console.log("HEREE@")
-            res.json({success:true,days:totalDays})
-          }
-        }
-  
-        
-  
-      }
-    }else{
-  
-      console.log("years dont match")
-    }
-  }else{
-    res.json({success:false,message:"app "+req.params.id+" does not exist"})
-  }
-
-  
-})
-
-/*
-router.post("/approve-booking/:id",(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
-  db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
-
-  })
-})
-*/
-
-//new get allbooked dates
 
 //calulate all booked dates for an application
 router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
