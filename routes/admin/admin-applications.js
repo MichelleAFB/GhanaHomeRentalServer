@@ -347,6 +347,19 @@ router.post("/turnOffAdminNotify/:id",async(req,res)=>{
 
 })
 
+router.get("/active",async(req,res)=>{
+  const apps=await Application.find({})
+
+  apps.map((a)=>{
+    
+    axios.get("http://localhost:3012/admin-applications/getActiveStatus/"+a._id).then((response)=>{
+      console.log(response.data)
+      
+      console.log("\n\n")
+    })
+  })
+})
+
 router.post("/setStatus/:id/:status",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
@@ -1229,6 +1242,8 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
     ]
   })
   app=app[0]
+
+  console.log(app)
   const cDate=new Date()
             const currDate=cDate.toString().substring(0,15)
             var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
@@ -1242,106 +1257,69 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
             var activeDate=new Date(startDate)
             var nextnext=activeDate.setDate(cDate.getDate()+1)
             activeDate=new Date(nextnext)
-            console.log("today:"+activeDate.toString().substring(0,15))
-            console.log(app)
-            console.log(app.currentlyOccupied)
-            
-            if(app.currentlyOccupied==1 && app.application_status=="CONFIRMED"){
-            
-              console.log("ALREADY SET")
-              res.json({success:true,currentlyOccupied:true})
-            }else if((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED"){
-              console.log(app.stay_start_date+" "+activeDate.toString().substring(0,15))
-              console.log("ACTIVED")
-              const updated=await Application.updateOne(
+
+            console.log((activeDate>=startDate && activeDate<=endDate &&(cDate>=activeDate && cDate<=endDate)) )
+            console.log("active:"+activeDate +" startDate:"+startDate+" endDate:"+endDate)
+          
+            if( (activeDate>=startDate && activeDate<=endDate) && (cDate>=activeDate && cDate<=endDate) ){
+              console.log("\n\n\n")
+             // console.log("start:"+app.stay_start_date+"  end:"+ app.stay_end_date+" activedate:"+activeDate)
+
+              console.log("\n\n")
+           
+            if((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED" ){
+             // console.log("Set ActiveACTIVED")
+             
+             const updated=await Application.updateOne(
                 {"_id":req.params.id}
                 ,{
                   $set:{
                     "currentlyOccupied":1
                   }
                 })
-                console.log(updated)
-                if(updated.acknowledged){
                   res.json({success:true,currentlyOccupied:true})
-                }
-          
-              
-            }else if(!((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED") && !(app.currentlyOccupied==1 && app.application_status=="CONFIRMED")){
-              console.log("ELSE")
-              res.json({success:true,currentlyOccupied:false})
-             
-            }else if(cDate>endDate && (app.checkoutTime!=null || app.checkoutTime!="")){
-              const turnOffAvtice=await Application.updateOne({"_id":req.params.id},
-              {
-                $set:{"currentlyOccupied":0}
-              })
-
-              axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants checkedout."})
-              
-
-            }
-
-  /*db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
-    if(err){
-      console.log(err)
-    }else{
-      const appCount=Object.values(JSON.parse(JSON.stringify(results)))
-      const count=appCount[0].appCount
-      if(count>0){
-        db.query("select * from ghanahomestay.applications where id=?",req.params.id,(err1,results1)=>{
-          if(err1){
-            console.log(err1)
-          }else{
-            const app=results1[0]
-            const cDate=new Date()
-            const currDate=cDate.toString().substring(0,15)
-            var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
-            "Aug","Sep","Oct","Nov","Dec"];
-            var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
-            var st=app.stay_start_date.split(" ")
-            var et=app.stay_end_date.split(" ")
-           //active Date starts 1day before
-            const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
-            const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
-            var activeDate=new Date(startDate)
-            var nextnext=activeDate.setDate(cDate.getDate()+1)
-            activeDate=new Date(nextnext)
-            console.log("today:"+activeDate.toString().substring(0,15))
-            console.log(app)
-            console.log(app.currentlyOccupied)
-            if(app.currentlyOccupied==1 && app.application_status=="CONFIRMED"){
-            
-              console.log("ALREADY SET")
-              res.json({success:true,currentlyOccupied:true})
-            }if((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED"){
-              console.log(app.stay_start_date+" "+activeDate.toString().substring(0,15))
-              console.log("ACTIVED")
-               db.query("update ghanahomestay.applications set currentlyOccupied=1 where id=?",req.params.id,(err2,results2)=>{
                 
-                if(err2){
-                  console.log(err2)
-                }else{
-                  console.log(results2)
-                  console.log("UPDATE")
-                  res.json({success:true,currentlyOccupied:true})
-                }
-               })
-            }if(!((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED") && !(app.currentlyOccupied==1 && app.application_status=="CONFIRMED")){
-              console.log("ELSE")
+              }else if(app.currentlyOccupied==1 && !(activeDate>=startDate && activeDate<=endDate) && app.application_status=="CONFIRMED"){
+                const update=await Application.updateOne({"_id":req.params.id},{
+                  $set:[
+                    {"currentlyOccupied":0}
+                  ]
+                })
+               // console.log(update)
+                res.json({success:true,currentlyOccupied:false})
+
+              }
+              else if(!((app.currentlyOccupied==1 && (activeDate>=startDate && activeDate<=endDate) ) && app.application_status=="CONFIRMED") && !(app.currentlyOccupied==1 && app.application_status=="CONFIRMED")){
+             // console.log("ELSE")
               res.json({success:true,currentlyOccupied:false})
              
             }
+          }else if((activeDate>=startDate && activeDate<=endDate) && !(cDate>=activeDate && cDate<=endDate) && app.currentlyOccupied==1 && app.application_status=="CONFIRMED"){
+            console.log()
+            console.log("\n\n\n")
+            console.log(app.stay_start_date+" correcting")
+            console.log("\n\n\n")
+            const setNotCurr=await Application.updateOne({"_id":req.params.id},{
+              $set:[{"currentlyOccupied":0}]
+            })
+            console.log(setNotCurr)
+           if(app.checkoutTime=="" || app.checkoutTime==''){
+           
+
+          axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/", {message:"Occupants checkedout."}).then((response)=>{
+              res.json({Success:true,currentlyOccupied:false})
+             })
+           }else{
+            res.json({success:true,currentlyOccupied:false})
+           }
+           
+          }else if((activeDate>=startDate && activeDate<=endDate) && !(cDate>=activeDate && cDate<=endDate) && app.currentlyOccupied!=1){
+          res.json({success:true,currentlyOccupied:false})
+           
           }
-        })
+      
 
-      }else{
-        console.log("NO APPS")
-        res.json({success:false,message:"Application "+req.params.id+" does not exist"})
-      }
 
-    }
-  })
-  */
 })
 /*
 

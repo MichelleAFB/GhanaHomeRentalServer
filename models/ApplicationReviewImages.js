@@ -9,6 +9,10 @@ const applicationReviewImagesSchema= new mongoose.Schema({
   img_url:{
     type:String,
     required:true
+  },
+  publicID:{
+    type:String,
+    required:true,
   }
 })
 

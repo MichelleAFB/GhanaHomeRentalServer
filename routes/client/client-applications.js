@@ -776,6 +776,17 @@ router.get("/getActiveStatus/:id",(req,res)=>{
 })
 */
 
+router.get("/active",async(req,res)=>{
+  const apps=await Application.find({})
+
+  apps.map((a)=>{
+    console.log(a)
+    axios.get("http://localhost:3012/client-applications/getActiveStatus/"+a._id).then((response)=>{
+      console.log(response)
+    })
+  })
+})
+
 router.get("/getActiveStatus/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
   
@@ -808,7 +819,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
             }if((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED"){
               console.log(app.stay_start_date+" "+activeDate.toString().substring(0,15))
               console.log("ACTIVED")
-              const updated=await Application.updateOne(
+             /* const updated=await Application.updateOne(
                 {"_id":req.params.id}
                 ,{
                   $set:{
@@ -819,6 +830,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                 if(updated.acknowledged){
                   res.json({success:true,currentlyOccupied:true})
                 }
+                */
           
               
             }if(!((app.currentlyOccupied!=1 && (activeDate>=startDate && activeDate<endDate) ) && app.application_status=="CONFIRMED") && !(app.currentlyOccupied==1 && app.application_status=="CONFIRMED")){

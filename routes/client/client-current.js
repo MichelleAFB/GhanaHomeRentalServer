@@ -452,6 +452,7 @@ router.get("/review-images/:id",async(req,res)=>{
   const images=await ApplicationReviewImage.find({$and:[{"application_id":req.params.id}]})
   const app=await Application.find({$and:[{"_id":req.params.id}]})
   if(app[0]!=null){
+
     res.json({success:true,images:images,no_img:images.length})
 
   }else{
@@ -475,21 +476,28 @@ router.post("/review/:id",async(req,res)=>{
   const review=req.body.review
   const images=req.body.images
   if(app!=null){
+    const remove=await ApplicationReviewImage.remove({$and:[{"application_id":req.params.id}]})
+    if(images!=null){
     images.map(async(r)=>{
       console.log(r)
       const review=new ApplicationReviewImage({
         application_id:req.params.id,
-        img_url:r.img_url
+        img_url:r.img_url,
+        publicID:r.publicID
       })
 
       const saveImg=await review.save()
-      const updated=await Application.find({$and:[{"_id":req.params.id}]})
-      const update=await Application.updateOne({"_id":req.params.id},
-      {$set:{"review":req.body.review}})
-      if(update.acknowledged && review !=null){
-        res.json({success:true,application:updated,changed:1})
-      }
+    
+      
+    
     })
+  }
+  const updated=await Application.find({$and:[{"_id":req.params.id}]})
+  const update=await Application.updateOne({"_id":req.params.id},
+  {$set:{"review":req.body.review}})
+  if(update.acknowledged && review !=null){
+    res.json({success:true,application:updated,changed:1})
+  }
   }else{
     res.json({success:false,message:"no active applications for application "+req.params.id})
   }
