@@ -294,11 +294,12 @@ router.post("/edit-guests/:id/:occupant_id",async(req,res)=>{
       const saved=await guest.save()
       const newGuests=await ApplicationGuest.find({$and:[{"occupant_id":req.params.occupant_id}]})
       index++
-     setTimeout(()=>{
+   
+    }
+    setTimeout(()=>{
       res.json({success:true,guests:newGuests,no_guests:index})
 
      },500)
-    }
     })
   }else{
       res.json({success:false,message:"app "+req.params.id+" does not exist"})
@@ -345,11 +346,14 @@ router.post("/restricted-individuals/:id/:occupant_id",async(req,res)=>{
       if(restrict!=null){
         index++
       }
-      setTimeout(()=>{
-        res.json({success:true,restricted:restrict,no_restricted:index})
-      },500)
+   
     }
     })
+    setTimeout(async()=>{
+      var restrict=await ApplicationRestrictedIndividual.find({$and:[{"occupant_id":req.params.occupant_id}]})
+
+      res.json({success:true,restricted:restrict,no_restricted:index})
+    },500)
 
   }else{
     res.json({success:false,message:" app "+req.params.id+" does not exist or is not currently active"})
