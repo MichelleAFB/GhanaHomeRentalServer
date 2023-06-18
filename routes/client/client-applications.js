@@ -1229,7 +1229,7 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
       const timeCheckedIn=currDate.toTimeString()
       const day=currDate.toString().substring(0,15)
       const checkin=time +" "+day
-      const application=await Application.updateOne(
+      const updated=await Application.updateOne(
         {"id":req.params.id},
         {$set:{
           "application_status":req.params.status,
@@ -1238,6 +1238,16 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
           "checkinTime":checkin
         }}
       )
+      if(updated.acknowledged){
+        var application=await Application.find({$and:[{"_id":req.params.id}]})
+        application=application[0]
+        console.log(application)
+        res.json({success:true,application:application})
+
+      }else{
+        res.json({success:false,no_applications:0})
+
+      }
 
     }
     else{ 
