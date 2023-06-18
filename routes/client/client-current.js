@@ -299,8 +299,6 @@ router.post("/edit-guests/:id/:occupant_id",async(req,res)=>{
 
      },500)
     }
-     
-    
     })
   }else{
       res.json({success:false,message:"app "+req.params.id+" does not exist"})
@@ -347,11 +345,9 @@ router.post("/restricted-individuals/:id/:occupant_id",async(req,res)=>{
       if(restrict!=null){
         index++
       }
-
-      
-      if(index==restricted.length-1){
+      setTimeout(()=>{
         res.json({success:true,restricted:restrict,no_restricted:index})
-      }
+      },500)
     }
     })
 
