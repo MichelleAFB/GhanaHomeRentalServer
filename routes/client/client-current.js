@@ -294,9 +294,10 @@ router.post("/edit-guests/:id/:occupant_id",async(req,res)=>{
       const saved=await guest.save()
       const newGuests=await ApplicationGuest.find({$and:[{"occupant_id":req.params.occupant_id}]})
       index++
-      if(index==guests.length-1){
-        res.json({success:true,guests:newGuests,no_guests:index})
-      }
+     setTimeout(()=>{
+      res.json({success:true,guests:newGuests,no_guests:index})
+
+     },500)
     }
      
     
