@@ -1228,16 +1228,19 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
       const currDate=new Date()
       const timeCheckedIn=currDate.toTimeString()
       const day=currDate.toString().substring(0,15)
-      const checkin=time +" "+day
+      const checkin=timeCheckedIn +" "+day
+      console.log(checkin)
       const updated=await Application.updateOne(
-        {"id":req.params.id},
-        {$set:{
-          "application_status":req.params.status,
+        {"_id":req.params.id},
+        {$set:
+          {"application_status":req.params.status,
           "notify_admin":1,
           "notify_admin_message":req.body.message,
           "checkinTime":checkin
-        }}
+        }
+        }
       )
+      console.log(updated)
       if(updated.acknowledged){
         var application=await Application.find({$and:[{"_id":req.params.id}]})
         application=application[0]
@@ -1250,22 +1253,7 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
       }
 
     }
-    else{ 
-    
-    const application=await Application.updateOne(
-      {"id":req.params.id},
-      {$set:{
-        "application_status":req.params.status,
-        "notify_applicant":1,
-        "notify_applicant_message":req.body.message
-      }}
-    )
-    if(application.acknowledged==true){
-      res.json({success:true,no_applications:application.matchedCount})
-    }else{
-      res.json({success:false,no_applications:0})
-    }
-  }
+   
   }
 
 })

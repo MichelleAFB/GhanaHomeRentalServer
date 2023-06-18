@@ -115,6 +115,11 @@ const applicationSchema=new mongoose.Schema({
     required:false,
     default:""
   },
+  checkinTime:{
+    type:String,
+    required:false,
+    default:""
+  },
   review:{
     type:String,
     required:false
