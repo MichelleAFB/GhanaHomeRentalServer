@@ -1227,13 +1227,15 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
     if(req.params.status=="CHECKEDIN"){
       const currDate=new Date()
       const timeCheckedIn=currDate.toTimeString()
+      const day=currDate.toString().substring(0,15)
+      const checkin=time +" "+day
       const application=await Application.updateOne(
         {"id":req.params.id},
         {$set:{
           "application_status":req.params.status,
           "notify_admin":1,
           "notify_admin_message":req.body.message,
-          "checkinTime":timeCheckedIn
+          "checkinTime":checkin
         }}
       )
 
