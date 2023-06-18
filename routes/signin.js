@@ -108,11 +108,28 @@ router.post("/sign-in-admin",(req,res)=>{
     const user=await User.find({
       $and:[
         {"email":email},
-        {"admin_id":adminId}
+        {"admin_id":adminId},
+        {"admin":1}
       ]
     })
     console.log("user")
     console.log(user)
+    if(user==null){
+      var checkEmail=await User.find({$and:[{"email":email}]})
+      checkEmail=checkEmail[0]
+      if(checkEmail==null){
+        res.json({success:false,message:"No account is linked to email:"+email})
+
+      }else{
+        var checkAdmin=await User.find({$and:[{"email":email},{"admin":1}]})
+        checkAdmin=checkAdmin[0]
+        if(checkAdmin==null){
+          res.json({success:false,message:"No administrative access is granted to email:"+email + " with ID: "+ adminId})
+        }else{
+          res.json({success:false,message:"cannot find user"})
+        }
+      }
+    }
     if(user!=null){
       const hash=user[0].hash
       bcrypt.compare(req.body.password, hash, function(err, result) {

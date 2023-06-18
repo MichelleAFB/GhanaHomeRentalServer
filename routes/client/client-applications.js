@@ -1525,28 +1525,49 @@ router.get("/get-all-reviews",(req,res)=>{
     const reviews=[]
     const review_img=await ApplicationReviewImage.find({})
 
-    review_img.map((r)=>{
-      if(!reviews.includes(r.application_id)){
+    review_img.map(async(r)=>{
+      var app=await Application.find({$and:[{"_id":r.application_id}]})
+       app=app[0]
+       
+       //console.log(app._id.toString())
+       //console.log(r.application_id+"\n")
+      
+       
+       const value=JSON.parse(JSON.stringify(app.application_status))
+      
+
+      if(!reviews.includes(r.application_id ) && (value=='CHECKEDOUT' || value=="CHECKEDOUT" )){
+      
         reviews.push(r.application_id)
       }
     })
-    var images
-    const our_reviews=[]
-    reviews.map((i)=>{
-      images=[]
-      review_img.map((r)=>{
-        if(r.application_id==i){
-          images.push(r)
-        }
-      })
-      our_reviews.push({application_id:i,images:images})
-    })
+    
+   
 
    
     setTimeout(()=>{
-      console.log(our_reviews)
-      res.json({success:true,reviews:our_reviews})
-    },800)
+      console.log(reviews)
+      const our_reviews=[]
+      console.log(reviews)
+      reviews.map((i)=>{
+        images=[]
+        review_img.map(async(r)=>{
+          const v=JSON.parse(JSON.stringify(r.application_id))
+          console.log(typeof(r.application_id))
+          console.log(typeof(i))
+          
+          if(r.application_id==i){
+            images.push(r)
+          }
+        })
+        our_reviews.push({application_id:i,images:images})
+      })
+      
+      setTimeout(()=>{
+        res.json({success:true,reviews:our_reviews,no_reviews:our_reviews.length})
+
+      },200)
+    },500)
   
     /*db.query("select * from ghanahomestay.application_review_images",(err,results)=>{
       if(err){
