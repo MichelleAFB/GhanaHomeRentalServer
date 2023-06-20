@@ -991,6 +991,19 @@ router.get("/activity",async(req,res)=>{
 
 })
 
+router.get("/checkAllActive",async(req,res)=>{
+  const applications=await Application.find({})
+  const apps=[]
+  applications.map((a)=>{
+    axios.get("http://localhost:3012/client-applications/getActiveStatus/"+a._id).then((response)=>{
+    apps.push({response:response.data,date:a.stay_start_date+" "+a.stay_end_date})
+    })
+  })
+  setTimeout(()=>{
+    res.json({apps})
+  },1000)
+})
+
 router.get("/getActiveStatus/:id",async(req,res)=>{
   var app= await Application.find({
     $and:[
@@ -1016,11 +1029,11 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
             
             var currentlyWrong=false
             const prom=new Promise(async(resolve,reject)=>{
-              if(app.application_status=='CONFIRMED' && app.approved==1){
+              if((app.application_status=='CONFIRMED' || app.application_status=="CHECKEDIN") && app.approved==1){
                 console.log("check if date is valie")
                 if((cDate>=startDate && cDate<=endDate) && (activeDate>=startDate && activeDate<=endDate) &&app.currentlyOccupied!=1){
                   console.log("confirmed and in range:CHANGE TO ACTUVE")
-                   const update=await Applicant.updateOne({"_id":req.params.id},{
+                   const update=await Application.updateOne({"_id":req.params.id},{
                     $set:[{"currentlyOccupied":1}]
                    })
                    console.log(update)
@@ -1031,7 +1044,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                 }
                 else{
                   //TODO:EITHER CHANGED TO CHECKEDOUT OUT IF PERSON FORGOT TO CHECKOUT OR DONT
-                   if(cDate>endDate &&  (activeDate>=start && activeDate<=endDate)  ){
+                   if(cDate>endDate &&  (activeDate>=startDate && activeDate<=endDate)  ){
                   console.log("confirmed but but person forgot to checkout")
                  axios.get("http://localhost:3012/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
                     if(response.data.success){
