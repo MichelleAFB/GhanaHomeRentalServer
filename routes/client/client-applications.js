@@ -782,7 +782,7 @@ router.get("/active",async(req,res)=>{
 
   apps.map((a)=>{
     console.log(a)
-    axios.get("http://localhost:3012/client-applications/getActiveStatus/"+a._id).then((response)=>{
+    axios.get("https://ghanahomestayserver.onrender.com/client-applications/getActiveStatus/"+a._id).then((response)=>{
       console.log(response)
     })
   })
@@ -980,7 +980,7 @@ router.get("/activity",async(req,res)=>{
   const applications=await Application.find({})
   const apps=[]
   applications.map((a)=>{
-    axios.get("http://localhost:3012/client-applications/activeStatus/"+a._id).then((response)=>{
+    axios.get("https://ghanahomestayserver.onrender.com/client-applications/activeStatus/"+a._id).then((response)=>{
       console.log(response)
       apps.push({app:a,data:response.data})
     })
@@ -995,7 +995,7 @@ router.get("/checkAllActive",async(req,res)=>{
   const applications=await Application.find({})
   const apps=[]
   applications.map((a)=>{
-    axios.get("http://localhost:3012/client-applications/getActiveStatus/"+a._id).then((response)=>{
+    axios.get("https://ghanahomestayserver.onrender.com/client-applications/getActiveStatus/"+a._id).then((response)=>{
     apps.push({response:response.data,date:a.stay_start_date+" "+a.stay_end_date})
     })
   })
@@ -1046,7 +1046,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                   //TODO:EITHER CHANGED TO CHECKEDOUT OUT IF PERSON FORGOT TO CHECKOUT OR DONT
                    if(cDate>endDate &&  (activeDate>=startDate && activeDate<=endDate)  ){
                   console.log("confirmed but but person forgot to checkout")
-                 axios.get("http://localhost:3012/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
+                 axios.get("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
                     if(response.data.success){
                       console.log(app.stay_start_date+" changed to checkout by force")
                       res.json({success,currentlyOccupied:false})
@@ -1099,7 +1099,7 @@ router.post("/release-reservation-due-to-unpaid/:id",async(req,res)=>{
   console.log(app)
   app=app[0]
   if(app!=null){
-  axios.get("http://localhost:3012/admin-applications/checkPayementDeadline/"+req.params.id).then(async(response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/checkPayementDeadline/"+req.params.id).then(async(response)=>{
     if(response.data.success && response.data.hasDueDate && response.data.passedDue){
        const released=await Application.updateOne(
         {"_id":req.params.id},
