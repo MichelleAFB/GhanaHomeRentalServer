@@ -268,39 +268,54 @@ router.post("/edit-guests/:id/:occupant_id",async(req,res)=>{
   const guests=req.body.guests
   console.log(req.body)
   var index=0
-  var app=await Application.find({$and:[{"_id":req.params.id},{"currentlyOccupied":1}]})
+  var app=await Application.find({$and:[{"_id":req.params.id}]})
   app=app[0]
   if(app!=null){
     var index=0
-    const prevGuests=await ApplicationGuest.find({$and:[{"occupant_id":req.params.occupants_id},{"application_id":req.params.id}]})
-    console.log(prevGuests)
-    if(prevGuests.length>0){
-      const removeOldGuests=await ApplicationGuest.remove({"occupant_id":req.params.occupant_id})
-      console.log(removeOldGuests)
-    }
-    
-
-    const guest=req.body.guests
-    guests.map(async(g)=>{
-      if(g.firstname!=''){
-      const guest=new ApplicationGuest({
-        occupant_id:req.params.occupant_id,
-        firstname:g.firstname,
-        lastname:g.lastname,
-        phone:g.phone,
-        email:g.email,
-        application_id:req.params.id
-      })
-      const saved=await guest.save()
-      const newGuests=await ApplicationGuest.find({$and:[{"occupant_id":req.params.occupant_id}]})
-      index++
+    const g=await ApplicationGuest.find({$and:[{"occupant_id":req.params.occupant_id}]})
    
-    }
-    setTimeout(()=>{
-      res.json({success:true,guests:newGuests,no_guests:index})
+    const prevGuests=await ApplicationGuest.find({$and:[{"occupant_id":req.params.occupant_id}]})
+    console.log(prevGuests.length)
+  
+    const prom=new Promise(async(resolve,reject)=>{
+      if(prevGuests.length>0){
+        const removeOldGuests=await ApplicationGuest.deleteMany({"occupant_id":req.params.occupant_id})
+        console.log(removeOldGuests)
+        resolve()
+      }else{
+        resolve()
+      }
 
-     },500)
     })
+
+    prom.then(()=>{
+
+      const guest=req.body.guests
+      guests.map(async(g)=>{
+        if(g.firstname!='' && g.firstname!=' ' && g.lastname!=' ' && g.lastname!=''){
+        const guest=new ApplicationGuest({
+          occupant_id:req.params.occupant_id,
+          firstname:g.firstname,
+          lastname:g.lastname,
+          phone:g.phone,
+          email:g.email,
+          application_id:req.params.id
+        })
+        const saved=await guest.save()
+        index++
+     
+      }
+     
+      })
+      setTimeout(async()=>{
+        const newGuests=await ApplicationGuest.find({$and:[{"occupant_id":req.params.occupant_id}]})
+        res.json({success:true,guests:newGuests,no_guests:index})
+  
+       },800)
+      
+    })
+
+  
   }else{
       res.json({success:false,message:"app "+req.params.id+" does not exist"})
   }

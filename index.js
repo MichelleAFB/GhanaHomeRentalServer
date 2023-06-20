@@ -96,6 +96,7 @@ handleDisconnect(newdb,new_db_config)
 
 /***************************CONNECT DB ************************************************************ */
 const db = require("./config/db");
+const { Application } = require("./models/Application");
 db.connect(() => {
   console.log("db connected in index route");
 });
@@ -154,5 +155,32 @@ app.use("/admin-current-resident",adminCurrentClientRouter)
 /************************************************************************************************************************************************************************************************************************************************************************************************************* */
 
 app.get("/", (req, res) => {
-  res.json("Welcome to home ghana stay server");
+  
+  const updates=[]
+  const prom=new Promise(async(resolve,reject)=>{
+    const apps=await Application.find({})
+    const updates=[]
+    apps.map((a)=>{
+      
+      axios.get("https://ghanahomestayserver.onrender.com/client-applications/getActiveStatus/"+a._id).then((response)=>{
+        console.log(response.data)
+        updates.push({data:response.data,stay:a.stay_start_date+" - "+a.stay_end_date})
+        console.log(apps.length)
+        console.log(updates.length)
+        if(updates.length==apps.length-1){
+          res.json({message:"Welcome to home ghana stay server\n\n",apps:updates});
+
+          resolve()
+        }
+      })
+    })
+
+  
+
+  })
+
+  prom.then(()=>{
+   // res.json({message:"Welcome to home ghana stay server\n\n",apps:updates});
+    
+  })
 });
