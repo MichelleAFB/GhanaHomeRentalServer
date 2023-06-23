@@ -112,6 +112,7 @@ router.post("/sign-in-admin",(req,res)=>{
         {"admin":1}
       ]
     })
+    console.log(user)
     user=user[0]
     console.log("user")
     console.log(user)
