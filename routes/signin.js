@@ -105,13 +105,14 @@ router.post("/sign-in-admin",(req,res)=>{
   const email=req.body.email
   const adminId=req.body.adminId
   const prom=new Promise(async(resolve,reject)=>{
-    const user=await User.find({
+    var user=await User.find({
       $and:[
         {"email":email},
         {"admin_id":adminId},
         {"admin":1}
       ]
     })
+    user=user[0]
     console.log("user")
     console.log(user)
     if(user==null){
@@ -131,7 +132,7 @@ router.post("/sign-in-admin",(req,res)=>{
       }
     }
     if(user!=null){
-      const hash=user[0].hash
+      const hash=user.hash
       bcrypt.compare(req.body.password, hash, function(err, result) {
         console.log("hashed:"+result)
         if(result==true){
