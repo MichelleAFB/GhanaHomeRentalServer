@@ -430,7 +430,30 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
       }
     
 
+    }else if(req.params.status=="CHECKEDOUT"){
+      var currDate=new Date()
+      currDate=currDate.toString().substring(0,15)
+      const application=await Application.updateOne({"_id":req.params.id},{
+        $set:{
+          "application_status":req.params.status,
+          "notify_applicant":1,
+          "notify_applicant_message":req.body.message,
+          "checkoutTime":new Date(),
+          "currentlyOccupied":0
+        }
+      })
+     
+      const updatedApp=await Application.find({$and:[{"_id":req.params.id}]})
+      console.log(application)
+      if(application.acknowledged==true){
+        res.json({success:true,no_applications:application.matchedCount,application:updatedApp})
+      }else{
+        res.json({success:false,no_applications:0})
+      }
+    
+
     }
+    
     else{ 
     
     const application=await Application.updateOne(
@@ -911,7 +934,7 @@ router.post("/remove-booked-dates/:id",async(req,res)=>{  res.setHeader("Access-
 
  
 })
-
+/*
 router.get("/getActiveStatus/:id",async(req,res)=>{
   var app= await Application.find({
     $and:[
@@ -937,6 +960,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
             var currentlyWrong=false
             const prom=new Promise(async(resolve,reject)=>{
               if(app.application_status=='CONFIRMED' && app.approved==1){
+
                 console.log("check if date is valie")
                 if((cDate>=startDate && cDate<=endDate) && (activeDate>=startDate && activeDate<=endDate) &&app.currentlyOccupied!=1){
                   console.log("confirmed and in range:CHANGE TO ACTUVE")
@@ -953,7 +977,18 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                   //TODO:EITHER CHANGED TO CHECKEDOUT OUT IF PERSON FORGOT TO CHECKOUT OR DONT
                    if(cDate>endDate &&  (activeDate>=start && activeDate<=endDate)  ){
                   console.log("confirmed but but person forgot to checkout")
-                 axios.get("http://localhost:3012/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
+                 axios.post("http://localhost:3012/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
+                    if(response.data.success){
+                      console.log(app.stay_start_date+" changed to checkout by force")
+                      res.json({success,currentlyOccupied:false})
+                    }else{
+                     res.json({success:false,message:"could not change status"})
+                    }
+                  })
+                  
+                }else  if(cDate>endDate &&  (activeDate>=startDate && activeDate<=endDate)  ){
+                  console.log("confirmed but but person forgot to checkout")
+                 axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
                     if(response.data.success){
                       console.log(app.stay_start_date+" changed to checkout by force")
                       res.json({success,currentlyOccupied:false})
@@ -994,6 +1029,117 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
             })
         
   
+})
+*/
+
+router.get("/getActiveStatus/:id",async(req,res)=>{
+  var app= await Application.find({
+    $and:[
+      {"_id":req.params.id}
+    ]
+  })
+  app=app[0]
+  console.log(app)
+  const cDate=new Date()
+            const currDate=cDate.toString().substring(0,15)
+            var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+            "Aug","Sep","Oct","Nov","Dec"];
+            var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+            var st=app.stay_start_date.split(" ")
+            var et=app.stay_end_date.split(" ")
+           //active Date starts 1day before
+            const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+            const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+            var activeDate=new Date(startDate)
+            var nextnext=activeDate.setDate(cDate.getDate()+1)
+            activeDate=new Date(nextnext)
+            console.log("today:"+activeDate.toString().substring(0,15))
+            
+            var currentlyWrong=false
+            const prom=new Promise(async(resolve,reject)=>{
+              if((app.application_status=='CONFIRMED' || app.application_status=="CHECKEDIN") && app.approved==1){
+                console.log("check if date is valie")
+                if((cDate>=startDate && cDate<=endDate) && (activeDate>=startDate && activeDate<=endDate) &&app.currentlyOccupied!=1){
+                  console.log("confirmed and in range:CHANGE TO ACTUVE")
+                   const update=await Application.updateOne({"_id":req.params.id},{
+                    $set:[{"currentlyOccupied":1}]
+                   })
+                   console.log(update)
+                   res.json({success:true,currentlyOccupied:true})
+                }else if((cDate>=startDate && cDate<=endDate) && (activeDate>=startDate && activeDate<=endDate) &&app.currentlyOccupied==1){
+                  res.json({success:true,currentlyOccupied:true})
+
+                }
+                else{
+                  //TODO:EITHER CHANGED TO CHECKEDOUT OUT IF PERSON FORGOT TO CHECKOUT OR DONT
+                  console.log("current date is adter end date:"+(cDate>endDate))
+                   if(cDate>endDate &&  (activeDate>=startDate && activeDate<=endDate)  ){
+                  console.log("confirmed but but person forgot to checkout")
+                 axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
+                  console.log(response.data)
+                    if(response.data.success){
+                      console.log(app.stay_start_date+" changed to checkout by force")
+                      res.json({success:true,currentlyOccupied:false})
+                    }else{
+                     res.json({success:false,message:"could not change status"})
+                    }
+                  })
+                  
+                }else if( cDate<startDate ){
+                  res.json({success:true,currentlyOccupied:false})
+
+                }else if(cDate>endDate && app.application_status=="CHECKEDIN"){
+                  console.log("\n\nhere")
+                 try{
+                   const update=await Application.updateOne(
+                    {"_id":req.params.id},{
+                      $set:[
+                        {"currentlyOccupied":0}
+                      ]
+                    })
+                    console.log("herher")
+
+                    axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
+                      console.log(response.data)
+                      if(response.data.success){
+                        console.log(app.stay_start_date+" changed to checkout by force")
+                        res.json({success:true,currentlyOccupied:false,application:response.data.application})
+                      }else{
+                       res.json({success:false,message:"could not change status"})
+                      }
+                    })
+                  }catch(error){
+                    console.log(err)
+                  }
+               
+                }else{
+                  console.log("fix currentlyOccupied")
+
+                  const update=await Application.updateOne(
+                    {"_id":req.params.id},{
+                      $set:[
+                        {"currentlyOccupied":0}
+                      ]
+                    })
+
+
+
+                }
+                }
+              }else if(app.application_status!="CONFIRMED" && app.currentlyOccupied==1){
+                //if app is "confirmed but somehow not approved"
+                const update=await Application.updateOne({"_id":req.params.id},{
+                  $set:{"currentlyOccupied":0}
+                })
+                const app=await Application.find({$and:[{"_id":req.params.id}]})
+                  res.json({success:true,currentlyOccupied:false,app:app,updated:update})
+              }else{
+                res.json({success:true,currentlyOccupied:false})
+              }
+              
+      
+
+            })
 })
 
 
