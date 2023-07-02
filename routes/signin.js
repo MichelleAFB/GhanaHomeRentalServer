@@ -234,9 +234,11 @@ router.post("/reset-password/:email",async(req,res)=>{
   const passwordConfirm=req.body.confirmPassword
   const email=req.params.email
   console.log(req.body)
+  var user=await User.find(({$and:[{"email":email},{"admin":0}]}))
+  console.log(user)
 
   if(password==passwordConfirm){
-    var user=await User.find(({$and:[{"email":email},{"admin":0}]}))
+ 
     user=user[0]
     if(user!=null){
       const saltRounds=10

@@ -1206,8 +1206,8 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
           {"_id":req.params.id},
           {$set:{
             "application_status":req.params.status,
-            "notify_applicant":1,
-            "notify_applicant_message":req.body.message,
+            "notify_admin":1,
+            "notify_admin_message":req.body.message,
             "dateApproved":currDate,
             "approved":1
           }}
@@ -1226,8 +1226,8 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
       const application=await Application.updateOne({"_id":req.params.id},{
         $set:{
           "application_status":"DENIED",
-          "notify_applicant":1,
-          "notify_applicant_message":req.body.message,
+          "notify_admin":1,
+          "notify_admin_message":req.body.message,
           "dateDenied":currDate,
           "approved":-1
         }
