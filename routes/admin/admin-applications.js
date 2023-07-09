@@ -14,6 +14,7 @@ const uniqueValidator = require('mongoose-unique-validator')
 const {Application} =require("../../models/Application");
 const { ApplicationOccupant } = require("../../models/ApplicationOccupant");
 const {BookedDate}=require('../../models/BookedDates')
+const{BlockedDate}=require("../../models/BlockedDates")
 
 router.use(bodyParser.json());
 var corsOptions = {
@@ -758,6 +759,17 @@ router.get("/checkAvailability/:id",async(req,res)=>{
 
 */
 
+router.get("/checkBlockedDates/",async(req,res)=>{
+  const blocked_dates=[]
+  const blocked=await BlockedDate.find({})
+  blocked.map((b)=>{
+    blocked_dates.push(d.day)
+  })
+  setTimeout(()=>{
+    res.json({success:true,blocked_dates:blocked})
+  },200)
+})
+
 router.get("/check",async(req,res)=>{
   const apps=await Application.find({})
   var i=0;
@@ -785,8 +797,96 @@ router.get("/check",async(req,res)=>{
  
 })
 
+router.get("/blocked-dates",async(req,res)=>{
+  const blockedDates=await BlockedDate.find({})
+  const blocked=[]
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  var cDate=new Date()
+  console.log(blockedDates)
 
+  if(blockedDates.length>0){
+    blockedDates.map((b)=>{
+      var date=b.day.split(" ")
+      console.log(date)
+     
+      date=new Date(date[3],monthnum[months.indexOf(date[1])-1],date[2])
+      console.log(date)
+      blocked.push(date)
+    })
+    setTimeout(()=>{
+      res.json({success:true,blocked_dates:blocked,length:blocked.length})
+    },500)
+  }else{
+    res.json({success:true,blocked_dates:blocked, length:blocked.length})
+  }
 
+})
+
+router.post("/blocked-dates",async(req,res)=>{
+ const blocked=[]
+ const blocked_dates=[]
+ var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+ "Aug","Sep","Oct","Nov","Dec"];
+ var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+
+ var end=req.body.end
+ var start=req.body.start
+var startDate=start.substring(0,15)
+var endDate=end.substring(0,15)
+console.log(startDate)
+
+startDate=startDate.split(" ") 
+endDate=endDate.split(" ")
+startDate=new Date(startDate[3],monthnum[months.indexOf(startDate[1])-1],startDate[2])
+endDate=new Date(endDate[3],monthnum[months.indexOf(endDate[1])-1],endDate[2])
+console.log("start:"+startDate)
+
+ var nextDate=new Date(startDate);
+ var start=new Date();
+ var startBuffer=start.setDate(startDate.getDate()-1)
+ var starterBuffer=new Date(startBuffer)
+
+ blocked.push(startDate.toString().substring(0,15))
+  console.log(nextDate.toString().substring())
+ while(nextDate.toString().substring(0,15)!=endDate.toString().substring(0,15)){
+   var nextnext=nextDate.setDate(nextDate.getDate()+1)
+   nextDate=new Date(nextnext)
+   console.log(nextDate.toString().substring(0,15))
+   blocked.push(nextDate.toString().substring(0,15))  
+  
+ }
+ var nextnext=nextDate.setDate(nextDate.getDate()+1)
+ nextDate=new Date(nextnext)
+
+ blocked.map(async(b)=>{
+  var bdate=b.toString().substring(0,15)
+  const date=new BlockedDate({
+    day:bdate
+  })
+
+  try{
+    const saved=await date.save()
+    console.log(saved)
+    var added=saved.day.split(" ")
+    added=new Date(added[3],monthnum[months.indexOf(added[1])-1],added[2])
+    blocked_dates.push(added)
+  }catch(err){
+    console.log("Already Blocked Off")
+  }
+ })
+ 
+ setTimeout(()=>{
+  res.json({success:true,blocked_dates:blocked_dates,length:blocked_dates.length})
+ },500)
+ 
+
+})
+
+router.get("/removed_booked",async(req,res)=>{
+  const deleted=await BlockedDate.deleteMany({})
+})
 
 
 router.post("/deny-booking/:id",async(req,res)=>{ 
@@ -1267,7 +1367,11 @@ router.post("/approve-booking/:id",(req,res)=>{
               console.log("\n\nour date")
               console.log(our_dates)
               var index=0
-                
+                axios.get("http://localhost:3012/admin-applications/checkBlockedDates").then((response2)=>{
+                  if(response2.data.blocked_dates.length>0){
+                    res.json({success:true,approved:false,conflicting_dates:response.data.blocked})
+                  }else{
+
                 const prom2=new Promise((resolve2,reject2)=>{
                   //Insure no duplicate entries
                   our_dates.map(async(o)=>{
@@ -1292,6 +1396,10 @@ router.post("/approve-booking/:id",(req,res)=>{
                   })
                   resolve2()
                 })
+              }
+
+                })
+               
                
                 prom2.then(async()=>{
                   console.log("already:"+alreadyBooked)

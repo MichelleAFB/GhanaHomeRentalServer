@@ -132,8 +132,8 @@ router.post("/checkout/:id",async(req,res)=>{
         const session=await strip.checkout.sessions.create({
           line_items:items,
           mode:"payment",
-          success_url:"http://localhost:3001/payment/success/"+id,
-          cancel_url:"http://localhost:3001/payment/cancel"
+          success_url:"https://ghanahomerental.onrender.com/payment/success/"+id,
+          cancel_url:"https://ghanahomerental.onrender.com/payment/cancel"
         })
        try{ 
         console.log(session.url)

@@ -136,7 +136,24 @@ const applicationSchema=new mongoose.Schema({
   timeCheckedIn:{
     type:String,
     required:false
+  },
+  fullsuite:{
+    type:boolean,
+    default:true
+  },
+  bedroom1:{
+    type:boolean,
+    default:false
+  },
+  bedroom2:{
+    type:boolean,
+    default:false
+  },
+  bedroom3:{
+    type:boolean,
+    default:false
   }
+
 })
 
 applicationSchema.plugin(uniqueValidator)
