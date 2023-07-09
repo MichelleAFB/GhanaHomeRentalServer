@@ -110,8 +110,10 @@ const port=process.env.PORT
 
 app.listen( () => console.log("Server running "));
 /**************************************CORS********************************************************* */
+const source="https://ghanahomerental.onrender.com/*"
 var corsOptions = {
   origin: "*",
+  "Access-Control-Allow-Origin":source,
   optionsSuccessStatus: 200,
 };
 
