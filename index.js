@@ -108,7 +108,6 @@ if (process.env.NODE_ENV === "development") {
 }
 const port=process.env.PORT
 
-app.listen( () => console.log("Server running "));
 /**************************************CORS********************************************************* */
 const source="https://ghanahomerental.onrender.com/*"
 var corsOptions = {
@@ -117,7 +116,10 @@ var corsOptions = {
   optionsSuccessStatus: 200,
 };
 
-router.use(cors(corsOptions));
+app.use(cors(corsOptions))
+app.listen( process.env.PORT => console.log("Server running "));
+
+
 
 
 /************************************************************************************************************************************************************************************************************************************************************************************************************* */

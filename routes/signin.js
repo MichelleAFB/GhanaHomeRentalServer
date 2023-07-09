@@ -153,7 +153,7 @@ router.post("/sign-in-admin",(req,res)=>{
 
 //args:email, password
 router.post("/sign-in-user",async(req,res)=>{
-  res.setHeader("Access-Control-Allow-Origin", "*");
+
 
 
   const email=req.body.email
