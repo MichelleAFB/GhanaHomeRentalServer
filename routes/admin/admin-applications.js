@@ -412,7 +412,8 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
           res.json({success:false,no_applications:0})
         }
       
-    }else if(req.params.status=="DENIED"){
+    }
+    else if(req.params.status=="DENIED"){
       var currDate=new Date()
       currDate=currDate.toString().substring(0,15)
       const application=await Application.updateOne({"_id":req.params.id},{

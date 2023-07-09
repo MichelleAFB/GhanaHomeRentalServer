@@ -138,19 +138,19 @@ const applicationSchema=new mongoose.Schema({
     required:false
   },
   fullsuite:{
-    type:boolean,
+    type:Boolean,
     default:true
   },
   bedroom1:{
-    type:boolean,
+    type:Boolean,
     default:false
   },
   bedroom2:{
-    type:boolean,
+    type:Boolean,
     default:false
   },
   bedroom3:{
-    type:boolean,
+    type:Boolean,
     default:false
   }
 
