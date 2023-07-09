@@ -97,7 +97,7 @@ router.get("/",(req,res)=>{
 
 router.post("/checkout/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
-
+console.log("\n\n\n"+req.params.id+"\n\n\n")
   const id=req.params.id
   const fees=req.body.fees
   console.log(fees)
