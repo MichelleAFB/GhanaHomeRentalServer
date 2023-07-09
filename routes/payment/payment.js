@@ -89,7 +89,7 @@ function handleDisconnect() {
 
 
 
-router.get("/",(req,res)=>{
+router.get("/",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   res.json("Welcome to home stay ghana server : PAYMENTS")
@@ -187,7 +187,7 @@ console.log("\n\n\n"+req.params.id+"\n\n\n")
 })
 
 
-router.get("/checkPaymentDue/:id",(req,res)=>{
+router.get("/checkPaymentDue/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
 
@@ -352,7 +352,7 @@ router.get("/checkPaymentDue/:id",(req,res)=>{
 
 //help:'/approve-booking
 //calulates an array of all dates a reservation takes up
-router.get("/calculate-all-booked-dates/:id",(req,res)=>{
+router.get("/calculate-all-booked-dates/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
 

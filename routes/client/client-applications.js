@@ -91,7 +91,7 @@ function handleDisconnect() {
 
 
 
-router.get("/", (req, res) => {
+router.get("/", async(req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   res.json("Welcome to home stay ghana server : CLIENT APPLICATIONS");
@@ -107,19 +107,19 @@ console.log(ad.hasOwnProperty('length'))
 const add={child:[]}
 console.log(add.child.hasOwnProperty("length"))
 
-router.post("/",(req,res)=>{
+router.post("/",async(req,res)=>{
 
   
-  console.log(req.body)
+  console.logasync(req.body)
   const application =req.body
   const children=req.body.children
   const adults=req.body.adults
-  console.log(req.body.adults.length)
+  console.logasync(req.body.adults.length)
   const st=req.body.startDate.split(" ")
   const ed=req.body.endDate.split(" ")
   const startDate=st[0]+" "+st[1]+" "+st[2]+" "+st[3]
   const endDate=ed[0]+" "+ed[1]+" "+ed[2]+" "+ed[3]
-  console.log(req.body)
+  console.logasync(req.body)
   var applicant
  
   if(adults.length>0){
@@ -247,7 +247,7 @@ router.post("/",(req,res)=>{
   })
 
 })
-router.post("/create-application",(req,res)=>{
+router.post("/create-application",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
   
   const application =req.body
@@ -260,7 +260,7 @@ router.post("/create-application",(req,res)=>{
   console.log(adults)
 
 
- //console.log(req.body)
+ //console.logasync(req.body)
  console.log(adults)
   const applicant=adults.filter((u)=> u.association=="applicant")
  
@@ -659,7 +659,7 @@ router.get("/getNoDays/:id",async(req,res)=>{
 
 
 //get all client applications
-router.get("/get-all-applications/:firstname/:lastname/:email",(req,res)=>{
+router.get("/get-all-applications/:firstname/:lastname/:email",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
    
@@ -695,7 +695,7 @@ router.get("/application/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   console.log("getting application"+ "\n\n")
-  console.log(req.params.id)
+  console.logasync(req.params.id)
   const app=await Application.find({$and:[{"_id":req.params.id}]})
   const occupants=await ApplicationOccupant.find({$and:[{"application_id":req.params.id}]})
   if(app!=null && occupants!=null){
@@ -709,7 +709,7 @@ router.get("/application/:id",async(req,res)=>{
 })
 
 /*
-router.get("/getActiveStatus/:id",(req,res)=>{
+router.get("/getActiveStatus/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
 
@@ -905,7 +905,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
 })
 */
 /*
-router.post("/release-reservation-due-to-unpaid/:id",(req,res)=>{
+router.post("/release-reservation-due-to-unpaid/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
 
@@ -1328,7 +1328,7 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
 })
 
 router.get("/application/:id",async(req,res)=>{
-  console.log(req.params.id)
+  console.logasync(req.params.id)
   var app=await Application.find({$and:[{"id":req.params.id}]})
   console.log(app)
   var appUpdated=await Application.find({$and:[{"id":req.params.id}]})
@@ -1416,7 +1416,7 @@ router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
 
 
 //calulate all booked dates for an application
-router.get("/allBookingDatesForApplication/:id",(req,res)=>{
+router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
@@ -1473,7 +1473,7 @@ router.get("/allBookingDatesForApplication/:id",(req,res)=>{
 
 /********************************************GUESTS************************ */
 /*
-router.get("/guests/:id",(req,res)=>{
+router.get("/guests/:id",async(req,res)=>{
   const id=req.params.id
 
   const guests=[]
@@ -1537,7 +1537,7 @@ router.get("/guests/:id/:occupant_id",async(req,res)=>{
   }
 })
 /*
-router.get("/guests/:id/:occupant_id",(req,res)=>{
+router.get("/guests/:id/:occupant_id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   const id=req.params.id
@@ -1592,7 +1592,7 @@ router.get("/guests/:id/:occupant_id",(req,res)=>{
 */
 
 
-router.get("/get-all-reviews",(req,res)=>{
+router.get("/get-all-reviews",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
 

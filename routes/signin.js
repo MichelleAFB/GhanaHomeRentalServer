@@ -90,7 +90,7 @@ function handleDisconnect() {
 
 
 
-router.get("/",(req,res)=>{
+router.get("/",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   res.json("Welcome to home stay ghana server : SIGNIN")
@@ -98,7 +98,7 @@ router.get("/",(req,res)=>{
 
 
 
-router.post("/sign-in-admin",(req,res)=>{
+router.post("/sign-in-admin",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
 
@@ -134,7 +134,7 @@ router.post("/sign-in-admin",(req,res)=>{
     }
     if(user!=null){
       const hash=user.hash
-      bcrypt.compare(req.body.password, hash, function(err, result) {
+      bcrypt.compareasync(req.body.password, hash, function(err, result) {
         console.log("hashed:"+result)
         if(result==true){
           res.json({success:true,admin:{firstname:user.firstname,lastname:user.lastname,email:user.email,phone:user.phone,admin_id:user.id}})
@@ -170,7 +170,7 @@ router.post("/sign-in-user",async(req,res)=>{
     console.log(user)
     if(user!=null){
       const hash=user.hash
-      bcrypt.compare(req.body.password, hash, function(err, result) {
+      bcrypt.compareasync(req.body.password, hash, function(err, result) {
         console.log("hashed:"+result)
         if(result==true){
           res.json({success:true,client:{firstname:user.firstname,lastname:user.lastname,email:user.email,phone:user.phone}})
@@ -182,7 +182,7 @@ router.post("/sign-in-user",async(req,res)=>{
   })
 })
 
-router.get("/apps",(req,res)=>{
+router.get("/apps",async(req,res)=>{
   db.query("select * from ghanahomestay.applications",(err,results)=>{
     if(err){
       console.log(err)
@@ -233,7 +233,7 @@ router.post("/reset-password/:email",async(req,res)=>{
   const password=req.body.password
   const passwordConfirm=req.body.confirmPassword
   const email=req.params.email
-  console.log(req.body)
+  console.logasync(req.body)
   var user=await User.find(({$and:[{"email":email},{"admin":0}]}))
   console.log(user)
 
@@ -273,7 +273,7 @@ router.post("/reset-password/admin/:email",async(req,res)=>{
   const password=req.body.password
   const passwordConfirm=req.body.confirmPassword
   const email=req.params.email
-  console.log(req.body)
+  console.logasync(req.body)
 
   if(password==passwordConfirm){
     var user=await User.find(({$and:[{"email":email},{"admin":1}]}))

@@ -87,7 +87,7 @@ function handleDisconnect() {
 
 
 
-router.get("/", (req, res) => {
+router.get("/", async(req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   res.json("Welcome to home stay ghana server : ADMIN APPLICATIONS");
@@ -106,11 +106,11 @@ router.get("/application/:id",async(req,res)=>{
 
 
 //get all client applications for client
-router.get("/get-all-applications/:firstname/:lastname/:email",(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
+router.get("/get-all-applications/:firstname/:lastname/:email",async(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   console.log("get all apps")
-  console.log(req.params)
+  console.logasync(req.params)
    const applications=[]
   const prom=new Promise((resolve,reject)=>{
 
@@ -1273,7 +1273,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
 })
 
 
-router.post("/approve-booking/:id",(req,res)=>{  
+router.post("/approve-booking/:id",async(req,res)=>{  
   res.setHeader("Access-Control-Allow-Origin","*")
   
 
@@ -1601,7 +1601,7 @@ router.post("/approve-booking/:id",(req,res)=>{
   })
 })
 /*
-router.get("/activeStatus/:id",(req,res)=>{
+router.get("/activeStatus/:id",async(req,res)=>{
 
             const prom=new Promise(async(resolve,reject)=>{
 
@@ -1867,7 +1867,7 @@ router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
 
 //help:'/approve-booking
 //calulates an array of all dates a reservation takes up
-router.get("/calculate-booked-dates-for-application/:id",(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
+router.get("/calculate-booked-dates-for-application/:id",async(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   var appExist
@@ -2107,7 +2107,7 @@ router.post("/reserveAndPromptPay/:id",async(req,res)=>{
   */
 })
 
-router.get("/test/:id",(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
+router.get("/test/:id",async(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   var flagApproved=true
@@ -2339,7 +2339,7 @@ router.get("/checkPaymentDeadline/:id",async(req,res)=>{
 
 
 /************************************************************* */
-router.get("/newGetPaymentDueDate",(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
+router.get("/newGetPaymentDueDate",async(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   var cDate=new Date()

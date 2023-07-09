@@ -79,7 +79,7 @@ function handleDisconnect() {
 
 
 
-router.get("/", (req, res) => {
+router.get("/", async(req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   res.json("Welcome to home stay ghana server : ADMIN APPLICATIONS");
@@ -118,7 +118,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
               console.log(app.stay_start_date+" "+activeDate.toString().substring(0,15))
               console.log("ACTIVED")
               const updated=await Application.update(
-                {"id":ObjectId(req.params.id)}
+                {"id":ObjectIdasync(req.params.id)}
                 ,{
                   $set:{
                     "currentlyOccupied":1
@@ -135,7 +135,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
 
 })
 /*
-router.get("/getActiveStatus/:id",(req,res)=>{
+router.get("/getActiveStatus/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
