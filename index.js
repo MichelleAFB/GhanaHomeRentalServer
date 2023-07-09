@@ -108,7 +108,7 @@ if (process.env.NODE_ENV === "development") {
 }
 const port=process.env.PORT
 
-app.listen(process.env.PORT, () => console.log("Server running ", process.env.PORT));
+app.listen( () => console.log("Server running "));
 /**************************************CORS********************************************************* */
 var corsOptions = {
   origin: "*",
