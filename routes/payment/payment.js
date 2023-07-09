@@ -137,7 +137,7 @@ console.log("\n\n\n"+req.params.id+"\n\n\n")
         })
        try{ 
         console.log(session.url)
-        return session.url
+        return session.url.toString()
        }catch(error){
           console.log(error)
        }
