@@ -117,7 +117,7 @@ var corsOptions = {
 };
 
 app.use(cors(corsOptions))
-app.listen( process.env.PORT => console.log("Server running "));
+app.listen( process.env.PORT,()=> {console.log("Server running ")});
 
 
 
