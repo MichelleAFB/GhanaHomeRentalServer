@@ -93,12 +93,15 @@ router.get("/", (req, res) => {
   res.json("Welcome to home stay ghana server : ADMIN APPLICATIONS");
 });
 
-router.get("/application/:id",(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
+router.get("/application/:id",async(req,res)=>{  
   res.setHeader("Access-Control-Allow-Origin", "*");
 
-  db.query("select * from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
-    res.json({success:true,application:results})
-  })
+  const application=await Application.find({$and:[{"_id":req.params.id}]})
+  if(application.length>1){
+    res.json({success:true,application:application[0]})
+  }else{
+    res.json({success:false,message:"application does not exist"})
+  }
 })
 
 
