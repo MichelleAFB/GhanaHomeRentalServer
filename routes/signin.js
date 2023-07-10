@@ -170,7 +170,7 @@ router.post("/sign-in-user",async(req,res)=>{
     console.log(user)
     if(user!=null){
       const hash=user.hash
-      bcrypt.compareasync(req.body.password, hash, function(err, result) {
+      bcrypt.compare(req.body.password, hash, async(err, result)=> {
         console.log("hashed:"+result)
         if(result==true){
           res.json({success:true,client:{firstname:user.firstname,lastname:user.lastname,email:user.email,phone:user.phone}})
