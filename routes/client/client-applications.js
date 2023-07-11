@@ -1082,14 +1082,21 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                     console.log(err)
                   }
                
-                }else{
+                }else if(cDate>endDate && app.application_status=="CONFIRMED"){
                   console.log("fix currentlyOccupied")
-
+                  console.log(app)
                   const update=await Application.updateOne(
                     {"_id":req.params.id},{
                       $set:[
                         {"currentlyOccupied":0}
                       ]
+                    })
+                    
+                    axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT",{message:"Applicants checked out at "+ cDate}).then((response)=>{
+                      console.log(response)
+                      if(response.data.success){
+                        res.json({success:true,currentlyOccupied:false})
+                      }
                     })
 
 

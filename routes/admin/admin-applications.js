@@ -108,6 +108,7 @@ router.get("/application/:id",async(req,res)=>{
 //get all client applications for client
 router.get("/get-all-applications/:firstname/:lastname/:email",async(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
   res.setHeader("Access-Control-Allow-Origin", "*");
+  const start=new Date()
 
   console.log("get all apps")
   console.logasync(req.params)
@@ -150,13 +151,15 @@ router.get("/get-all-applications/:firstname/:lastname/:email",async(req,res)=>{
   prom.then(()=>{
     console.log(applications)
     console.log("here")
-    res.json({success:true,no_applications:applications.length,applications:applications})
+    const end=new Date()
+    res.json({success:true,no_applications:applications.length,applications:applications,time:end-start})
 
   })
 
 })
 //retreieve all applications
 router.get("/applications",async(req,res)=>{
+  const start=new Date()
   res.setHeader("Access-Control-Allow-Origin", "*");
   const apps=[]
   const applications=await Application.find({})
@@ -170,7 +173,8 @@ router.get("/applications",async(req,res)=>{
     apps.push({application:a,occupants:occupants})
     i++
     if(i==applications.length-1){
-      res.json({success:true,applications:apps,no_applications:applications.length})
+      const end=new Date()
+      res.json({success:true,applications:apps,no_applications:applications.length,time:end-start})
     }
   })
 
@@ -436,6 +440,7 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
     
 
     }else if(req.params.status=="CHECKEDOUT"){
+      try{
       var currDate=new Date()
       currDate=currDate.toString().substring(0,15)
       const application=await Application.updateOne({"_id":req.params.id},{
@@ -450,11 +455,16 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
      
       const updatedApp=await Application.find({$and:[{"_id":req.params.id}]})
       console.log(application)
+      console.log(application)
+      console.log("\n\n\n")
       if(application.acknowledged==true){
         res.json({success:true,no_applications:application.matchedCount,application:updatedApp})
       }else{
         res.json({success:false,no_applications:0})
       }
+    }catch(err){
+      res.json({success:false,message:error})
+    }
     
 
     } else  if(req.params.status=="PAYEDANDAPPROVED"){
@@ -1242,7 +1252,11 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                     console.log(err)
                   }
                
+                 
                 }else{
+                  console.log(application)
+                  console.log("check status")
+
                   console.log("fix currentlyOccupied")
 
                   const update=await Application.updateOne(
@@ -1251,7 +1265,6 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                         {"currentlyOccupied":0}
                       ]
                     })
-
 
 
                 }
