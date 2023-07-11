@@ -19,7 +19,7 @@ import session from 'express-session'
 const dotenv = require("dotenv");
 dotenv.config({path:'.env'});
 const express = require("express");
-const app = express();
+//const app = express();
 const mongoose = require("mongoose");
 const cloudinary = require("cloudinary").v2;
 const router = express.Router();
@@ -44,8 +44,21 @@ const env=process.env.NODE_ENV
 const strip=require('stripe')(process.env.STRIP_KEY)
 const new_db_config=require("./config/newdb")
 
+const app=express()
+app.use(cors());
+app.use(express.json());
+app.use(bodyParser.json());
+const morgan = require("morgan");
+
+const corsOptions={
+  origin: 'https://ghanahomestayserver.onrender.com/*'
+}
 
 
+app.use(morgan('tiny'));
+app.use(cors(corsOptions))
+app.listen( process.env.PORT,()=> {console.log("Server running ")});
+/*
 
 app.use(cors());
 app.use(express.json());
@@ -54,6 +67,8 @@ const morgan = require("morgan");
 
 
 app.use(morgan('tiny'));
+app.use(cors(corsOptions))
+app.listen( process.env.PORT,()=> {console.log("Server running ")});
 //*************************** */
 //console.log(new_db_config)
 
@@ -109,12 +124,14 @@ if (process.env.NODE_ENV === "development") {
 const port=process.env.PORT
 
 /**************************************CORS********************************************************* */
+/*
 const source="https://ghanahomerental.onrender.com/*"
 var corsOptions = {
   origin: "*",
   "Access-Control-Allow-Origin":source,
   optionsSuccessStatus: 200,
 };
+*/
 
 app.use(cors(corsOptions))
 app.listen( process.env.PORT,()=> {console.log("Server running ")});
@@ -140,16 +157,15 @@ app.use("/sign-in", signInRouter);
 
 const stripPaymentRouter=require('./router').stripPaymentRouter
 app.use("/payment",stripPaymentRouter)
-/*
+
 const clientApplicationsRouter=require("./router").clientApplicationsRouter
 app.use("/client-applications",clientApplicationsRouter)
-*/
+
 
 const adminApplicationsRouter=require("./router").adminApplicationsRouter 
 app.use("/admin-applications",adminApplicationsRouter) 
 
-const clientApplicationsRouter=require("./router").clientApplicationsRouter
-app.use("/client-applications",clientApplicationsRouter)  
+
 
 const currentClientRouter=require("./router").currentClientRouter
 app.use("/current-resident",currentClientRouter)  
@@ -157,6 +173,11 @@ app.use("/current-resident",currentClientRouter)
 const adminCurrentClientRouter=require("./router").adminCurrentClientRouter
 app.use("/admin-current-resident",adminCurrentClientRouter)  
 /************************************************************************************************************************************************************************************************************************************************************************************************************* */
+const routers=[{router:residentsRouter,path:"/residents"},{router:signUpRouter,path:"/sign-up"},{router:signInRouter,path:"/sign-in"},{router:stripPaymentRouter,path:"/payment"},{router:adminApplicationsRouter,path:"/admin-applications"},{router:clientApplicationsRouter,path:"/client-applications"},{router:adminCurrentClientRouter,path:"/admin-current-resident"},{router:currentClientRouter,path:"/current-resident"}]
+
+
+
+
 
 app.get("/", (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -186,7 +207,7 @@ app.get("/", (req, res) => {
   })
 
   prom.then(()=>{
-   // res.json({message:"Welcome to home ghana stay server\n\n",apps:updates});
+   res.json({message:"Welcome to home ghana stay server\n\n",apps:updates});
     
   })
 });
