@@ -57,7 +57,7 @@ const corsOptions={
 
 app.use(morgan('tiny'));
 app.use(cors(corsOptions))
-app.listen( process.env.PORT,()=> {console.log("Server running ")});
+
 /*
 
 app.use(cors());
