@@ -195,7 +195,7 @@ app.get("/", (req, res) => {
         console.log(apps.length)
         console.log(updates.length)
         if(updates.length==apps.length-1){
-          res.json({message:"Welcome to home ghana stay server\n\n",apps:updates});
+         // res.json({message:"Welcome to home ghana stay server\n\n",apps:updates});
 
           resolve()
         }
