@@ -112,41 +112,25 @@ router.get("/get-all-applications/:firstname/:lastname/:email",async(req,res)=>{
   const start=new Date()
 
   console.log("get all apps")
-  console.logasync(req.params)
+  console.log(req.params)
    const applications=[]
-  const prom=new Promise((resolve,reject)=>{
 
-    db.query("select count(*) as appCount from ghanahomestay.applications where firstname=? && lastname =? && email=?",[req.params.firstname,req.params.lastname,req.params.email],(errCount,resultsCount)=>{
+  const prom=new Promise(async(resolve,reject)=>{
+    var apps=await Application.find({$and:[{"firstname":req.params.firstname},{"lastname":req.params.lastname},{"email":req.params.email}]})
+    if(apps.length>0){
+      apps.map(async(a)=>{
+        const occupants=await ApplicationOccupant.find({$and:[{"application_id":a.id}]})
+        applications.push({application:a,occupants:occupants})
+      })
 
-      const appCount=Object.values(JSON.parse(JSON.stringify(resultsCount)))
-      const count=appCount[0].appCount
-      console.log(count)
-      if(count>0){
-  
-        db.query("select * from ghanahomestay.applications where firstname=? && lastname =? && email=?",[req.params.firstname,req.params.lastname,req.params.email],(err,results)=>{
-          if(err){
-            console.log(err)
-          }
-          
-          results.map((r)=>{
-            console.log(r)
-            db.query("select * from ghanahomestay.application_occupants where application_id=?",r.id,(err1,results1)=>{
-              if(err1){
-                console.log(err1)
-              }
-              console.log(results1)
-              applications.push({application:r,occupants:results1})
-             
-            })
-          }) 
-          setTimeout(()=>{
-            resolve()
-          },1000)
-        
-        })
-       
-      }
-    })
+      setTimeout(()=>{
+        resolve(applications)
+      },1000)
+
+    }else{
+      reject()
+    }
+   
   })
 
   prom.then(()=>{
@@ -154,6 +138,8 @@ router.get("/get-all-applications/:firstname/:lastname/:email",async(req,res)=>{
     console.log("here")
     const end=new Date()
     res.json({success:true,no_applications:applications.length,applications:applications,time:end-start})
+
+  }).catch(()=>{
 
   })
 
