@@ -1,3 +1,5 @@
 FROM node:alpine
 COPY . /*
-CMD nodeindex.js
+WORKDIR  /*
+CMD node index.js
+
