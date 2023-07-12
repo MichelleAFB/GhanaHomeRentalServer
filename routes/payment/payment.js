@@ -12,6 +12,7 @@ var {db}=require("../../config/db")
 const mongoose=require("mongoose")
 const uniqueValidator = require('mongoose-unique-validator')
 const { Application } =require('../../models/Application');
+const { reject } = require('lodash');
 
 
 const connectdb = async () => {
@@ -140,6 +141,7 @@ console.log("\n\n\n"+req.params.id+"\n\n\n")
         return session.url.toString()
        }catch(error){
           console.log(error)
+          reject(error)
        }
       }
       checkout().then((response)=>{
@@ -160,29 +162,23 @@ console.log("\n\n\n"+req.params.id+"\n\n\n")
         {"id":req.params.id},
         {
           $set:{
-            "datePaid":currDate,
+           
             "paymentSessionUrl":response,
 
           }
         }
       )
+      console.log(updated)
       if(updated.acknowledged==true){
-        res.json({success:true,url:response})
+        res.json({success:true,url:response,updated:updated})
       }
     }else{
-        res.json({success:false,message:"error"})
+        res.json({success:false,message:"error",updated:updated})
       }
-     /* db.query("update ghanahomestay.applications set datePaid=?, paymentSessionUrl=? where id=? ",[currDate,response,req.params.id],(err,results)=>{
-        if(err){
-          console.log(err)
-        }else{
-            res.json({success:true,url:response})
-        }
-      })
-      */
+  
     })
-  }).catch(()=>{
-    //res.json({success:false})
+  }).catch((err)=>{
+    res.json({success:false,error:err})
   })
 })
 
