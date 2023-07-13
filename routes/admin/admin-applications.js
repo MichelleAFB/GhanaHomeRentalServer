@@ -1426,12 +1426,8 @@ router.post("/approve-booking/:id",async(req,res)=>{
                   })
                   resolve2()
                 })
-              }
 
-                })
-               
-               
-                prom2.then(async()=>{
+                   prom2.then(async()=>{
                   console.log("already:"+alreadyBooked)
                   console.log(our_dates.length+" alreadyLength:"+alreadyBooked+" newbooked:"+index)
                     const cDate=new Date()
@@ -1459,7 +1455,13 @@ router.post("/approve-booking/:id",async(req,res)=>{
                       res.json({success:true,approved:true,conflicting_dates:conflicting_dates,paid:response.data.paid,no_booked:alreadyBooked+indLength})
                     }
                   
-                })          
+                })   
+              }
+
+                })
+               
+               
+                    
               
             }else{
               //TODO:send error
@@ -2337,7 +2339,47 @@ router.get("/checkPaymentDeadline/:id",async(req,res)=>{
 
 })
 
+router.get("/unavailable-dates",async(req,res)=>{
 
+  const booked=await BookedDate.find({})
+  const blocked=await BlockedDate.find({})
+  console.log(booked)
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  var cDate=new Date()
+  
+  const dates=[]
+  if(blocked.length>0){
+  blocked.map((b)=>{
+    var date=b.day.split(" ")
+     console.log(date)
+ 
+  date=new Date(date[3],monthnum[months.indexOf(date[1])-1],date[2])
+  console.log(date)
+    dates.push(date)
+    if(dates.length==booked.length+blocked.length){
+      res.json({success:true,dates:dates})
+    }
+  })  
+}
+  if(booked.length>0){
+  booked.map((b)=>{
+    console.log(b)
+    var date=b.date.split(" ")
+     console.log(date)
+ 
+  date=new Date(date[3],monthnum[months.indexOf(date[1])-1],date[2])
+  console.log(date)
+    dates.push(date)
+    if(dates.length==booked.length+blocked.length){
+      res.json({success:true,dates:dates})
+    }
+  })  
+}
+
+
+})
 /************************************************************* */
 router.get("/newGetPaymentDueDate",async(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
   res.setHeader("Access-Control-Allow-Origin", "*");
