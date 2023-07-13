@@ -1257,7 +1257,7 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
         const application=await Application.updateOne(
           {"_id":req.params.id},
           {$set:{
-            "application_status":req.params.status,
+            "application_status":"CONFIRMED",
             "approved":1,
             "notify_admin":1,
             "notify_applicant":1,

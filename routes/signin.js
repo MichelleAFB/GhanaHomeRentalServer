@@ -134,7 +134,7 @@ router.post("/sign-in-admin",async(req,res)=>{
     }
     if(user!=null){
       const hash=user.hash
-      bcrypt.compareasync(req.body.password, hash, function(err, result) {
+      bcrypt.compare(req.body.password, hash, function(err, result) {
         console.log("hashed:"+result)
         if(result==true){
           res.json({success:true,admin:{firstname:user.firstname,lastname:user.lastname,email:user.email,phone:user.phone,admin_id:user.id}})
