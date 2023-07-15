@@ -1473,131 +1473,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
       }
 
 
-     /* db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
-     console.log("here 1")
-        if(err){
-          console.log(err)
-        }else {
-          const appCount=Object.values(JSON.parse(JSON.stringify(results)))
-          const count=appCount[0].appCount
-          if(count>0){
-            const cDate=new Date()
-            const currDate=cDate.toString().substring(0,15)
-
-            //make sure dates are available
-            db.query("select * from ghanahomestay.booked_dates where application_id!=?",req.params.id,(err2,results2)=>{
-              if(err2){
-                console.log(err2)
-              }else{
-                console.log("herei")
-               
-                //check to see if paid if status was changed from payed to something else
-                axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then((response1)=>{
-                  console.log(response1)
-                  const booked=results2
-                  const our_dates=response1.data.booked_dates
-                  var index=0
-                  const conflicts=[]
-                  console.log(our_dates+"\n\n")
-                  booked.map((b)=>{
-                    our_dates.map((o)=>{
-                      console.log(o.date+" "+b.date)
-                      console.log(b)
-                      console.log(o.application_id+" "+b.application_id)
-                      if(o.date==b.date && o.application_id!=b.application_id){
-                        console.log("match\n\n")
-                        conflicts.push({application_id:b.application_id,date:b.date})
-                        
-                        index++;
-                      }
-                    })
-                  })
-                 
-                  if(index>0){
-                  
-                    res.json({success:true,approved:false,conflicting_dates:conflicts,paid:true,message:"conflicting dates"})
-                  }else{
-                    var indLength=0
-                    var alreadyBooked=0
-                    const prom2=new Promise((resolve2,reject2)=>{
-                      our_dates.map((o)=>{
-
-                        db.query("select count(*) as appCount from ghanahomestay.booked_dates where application_id=? && date=?",[req.params.id,o.date],(err5,results5)=>{
-                          if(err5){
-                            console.log(err5)
-                          }else{
-                            const appCount3=Object.values(JSON.parse(JSON.stringify(results5)))
-                            const count3=appCount3[0].appCount
-                            if(count3>0){
-                              console.log(count3)
-                              alreadyBooked++
-                            }else{
-                              db.query("insert into ghanahomestay.booked_dates (application_id,date) values (?,?)",[req.params.id,o.date],(err4,results4)=>{
-                                if(err4){
-                                  console.log(err4)
-                                }else{
-  
-                                  console.log(results4)
-                                  if(results4.affectedRows>0){
-                                    indLength++
-                                  }
-                              
-                                }
-                              })
-  
-                            }
-  
-                          }
-                        })
-  
-                      })
-                      resolve2()
-
-                    })
-                   
-                    prom2.then(()=>{
-                      console.log(our_dates.length+" alreadyLength:"+alreadyBooked+" newbooked:"+index)
-                        const cDate=new Date()
-                        const currDate=cDate.toString().substring(0,15)
-                      db.query("update ghanahomestay.applications set approved=1,dateApproved=? where id=?",[currDate,req.params.id],(err6,results6)=>{
-                        if(err6){
-                          console.log(err6)
-                        }else{
-                          console.log(alreadyBooked+indLength+" "+our_dates.length)
-                          if(alreadyBooked+indLength==our_dates.length){
-                          res.json({success:true,approved:true,conflicting_dates:conflicting_dates,paid:response.data.paid,no_booked:alreadyBooked+indLength})
-                          }else{
-                            
-                          }
-                        }
-                      })
-
-                      
-                    })
-
-                     
-                  }
-                })
-              }
-
-            })
-            /*db.query("update ghanahomestay.applications set approved=1,dateApproved=? where id=?",[currDate,req.params.id],(err1,results1)=>{
     
-            })
-            
-    
-          }else{
-            res.json({success:false,message:"application "+ req.params.id+" does not exist."})
-          }
-
-
-        }
-
-
-      })
-      */
-      
-
     }
   }
   })
@@ -2338,48 +2214,439 @@ router.get("/checkPaymentDeadline/:id",async(req,res)=>{
   
 
 })
+const arr2=[]
+router.get("/find-dates",(req,res)=>{
+  var oldDates=[]
+  const arr=[]
+  
+  try{
+  axios.get("https://ghanahomerental.onrender.com/admin-applications/blocked-booked-dates").then((response)=>{
+   try{ 
+    var goo=true;
+console.log(response.data.dates)
+const d=response.data.dates
+    const dates=response.data.dates
+  
+    console.log(dates.length)
+    var min = dates.reduce(function (a, b) { return a < b ? a : b; }); 
+    console.log(min)
+    oldDates.push(new Date(min))
+    while(dates.length>2){
+   
+      if(goo==true){
+       console.log(goo)
+        console.log(dates.length) 
+        console.log(typeof(min))
+        var next=new Date(min)
+        next=new Date(next.setDate(next.getDate()+1))
+        var nextVal=JSON.stringify(next)
+        //console.log("min:"+min)
+        //console.log("next:"+nextVal+"\n")
+        if(!oldDates.includes(JSON.parse(nextVal))&& dates.includes(JSON.parse(nextVal))){
+          goo=true
+          oldDates.push(next)
+          console.log("removing:"+dates[dates.indexOf(min)])
 
+          dates.splice(dates.indexOf(min),1)
+          min = dates.reduce(function (a, b) { return a <= b ? a : b; }); 
+          console.log("NEW MIN: "+min)
+          console.log(dates)
+        }else{
+          next=new Date(next.setDate(next.getDate()+1))
+
+        console.log("SWITCHING-----------------------------------")
+        goo=false 
+        
+
+        }
+      }else{ 
+        
+        if(!oldDates.includes(JSON.parse(nextVal)) && dates.includes(JSON.parse(nextVal))){
+          console.log("here")
+           oldDates.push(next)
+           dates.splice(dates.indexOf(min),1)
+           min = dates.reduce(function (a, b) { return a <= b ? a : b; }); 
+          // next=new Date(next.setDate(next.getDate()+1))
+           goo=true
+         
+
+         }else{
+           
+
+         
+         
+         }
+      
+
+        console.log("NOT FOUNDDDDD")   
+        console.log(nextVal +" "+min)
+        console.log("here:"+dates.includes((JSON.parse(nextVal))))
+        var maxL = dates.reduce(function (a, b) { return a > b ? a : b; }); 
+        console.log("max: "+maxL)  
+        if(!oldDates.includes(JSON.parse(nextVal)) && dates.includes(JSON.parse(nextVal))){
+          console.log("here")
+           oldDates.push(next)
+           dates.splice(dates.indexOf(min),1)
+           min = dates.reduce(function (a, b) { return a <= b ? a : b; }); 
+          // next=new Date(next.setDate(next.getDate()+1))
+           goo=true
+         
+
+         }else{
+           
+
+         
+         
+         }
+       while((new Date(maxL))>(new Date(next)) && !dates.includes(new Date(JSON.parse(nextVal)))){
+                  
+ 
+          var next=new Date(next) 
+          next=new Date(next.setDate(next.getDate()+1))
+          var nextVal=JSON.stringify(next)
+          console.log("min:"+min) 
+          console.log("next:"+nextVal+"\n")
+          console.log("here:"+dates.includes(new Date(JSON.parse(nextVal))))
+
+          if(!oldDates.includes(JSON.parse(nextVal)) && dates.includes(JSON.parse(nextVal))){
+           console.log("here")
+            oldDates.push(new Date(next))
+            dates.splice(dates.indexOf(min),1)
+            min = dates.reduce(function (a, b) { return a <= b ? a : b; }); 
+           // next=new Date(next.setDate(next.getDate()+1))
+            goo=true
+          
+
+          }else{
+            
+
+          
+          
+          }
+        }
+      
+        
+      }
+
+    }
+    const datess=[]
+    const datesss=[]
+    setTimeout(()=>{
+      oldDates.map((a)=>{
+        if(!datess.includes(JSON.stringify(a))){
+          const d=new Date(a)
+          datess.push(JSON.stringify(a))
+          datesss.push(new Date(a))
+
+          console.log(typeof(a)+" "+typeof(dates[0]))
+
+        }else{
+          console.log("DUP")
+        }
+      })
+    },1500)
+
+    setTimeout(()=>{
+      res.json({success:true,dates:datesss})
+    },2000)
+
+
+
+   }catch(err){
+
+   }
+  })
+}catch(err){
+  console.log(err)
+}
+})
+router.get("/sort-unavailable",(req,res)=>{
+  var oldDates=[]
+  const arr=[]
+  
+  try{
+  axios.get("http://localhost:3012/admin-applications/unavailable-dates").then((response)=>{
+   try{ 
+    console.log(response.data.dates)
+    const dates=response.data.dates
+    old=response.data.dates
+    var min = dates.reduce(function (a, b) { return a < b ? a : b; }); 
+    
+    const r=response.data.dates
+    arr.push(r)
+    while(dates.length>1){
+    oldDates.push(new Date(min))
+    dates.splice(dates.indexOf(min),1)
+    var next=new Date(min)
+    next=new Date(next.setDate(next.getDate()+1))
+    var nextVal=JSON.stringify(next)
+    console.log(min+ "   \n next:"+ next+"\n")
+    if(dates.includes(JSON.parse(nextVal)) && !oldDates.includes(new Date(next))){
+      var index=dates.indexOf(JSON.parse(nextVal))
+      dates.splice(index,1)
+      oldDates.push(new Date(next))
+      while(dates.length>0 &&dates.includes(JSON.parse(nextVal))){
+     
+       var date=new Date(oldDates[oldDates.length-1])
+       next=new Date(date) 
+      next=new Date(next.setDate(next.getDate()+1))
+       nextVal=JSON.stringify(next)
+      if(dates.includes(JSON.parse(nextVal))){
+        index=dates.indexOf(JSON.parse(nextVal))
+        dates.splice(index,1)
+        oldDates.push(new Date(next))
+      }else{
+         var min = next
+         var next=new Date(min)
+        next=new Date(next.setDate(next.getDate()+1))
+        var nextVal=JSON.stringify(next)
+         console.log("NEW MIN:"+min)
+    
+      
+      }
+    }
+
+ 
+    }else{ 
+      console.log("NOT FOUNF")
+      dates.splice(dates.indexOf(min),1)
+      //console.log(dates)
+      console.log(dates.length)
+      var min = dates.reduce(function (a, b) { return a < b ? a : b; }); 
+      next=new Date(min) 
+      next=new Date(next.setDate(next.getDate()+1))
+       nextVal=JSON.stringify(next)
+     
+      
+      while(!dates.includes(JSON.parse(nextVal)) &&dates.length>0){ 
+        dates.splice(dates.indexOf(min),dates.indexOf(min))
+       
+        console.log(oldDates)
+        var min = oldDates.reduce(function (a, b) { return a > b ? a : b; }); 
+  
+        next=new Date(min)
+        next=new Date(next.setDate(next.getDate()+1))
+         nextVal=JSON.stringify(next)
+         console.log("\n\nHERE:")
+         console.log(JSON.parse(nextVal) + " min: "+min) 
+        console.log("SEARCHINGGGGGGGGGGGGGGGGG!!") 
+        next=new Date(next)
+        next=new Date(next.setDate(next.getDate()+1))
+        var nextVal=JSON.stringify(next)
+        
+        if(dates.includes(JSON.parse(nextVal))){
+          console.log("FOUNDD")
+        }
+       
+      }
+      console.log("here")
+      dates.splice(dates.indexOf(JSON.parse(nextVal)),dates.indexOf(JSON.parse(nextVal)))
+      if(!oldDates.includes(JSON.parse(nextVal))){
+      oldDates.push(new Date(next))
+      console.log("FOUNDD"+JSON.parse(nextVal)+" "+dates.includes(JSON.parse(nextVal)))
+      min=dates.reduce(function (a, b) { return a < b ? a : b; })
+      }
+      
+
+    }
+}
+   /* dates.map((d)=>{
+      var next=new Date(d)
+      next=new Date(next.setDate(next.getDate()+1))
+      var nextVal=next.setDate(next.getDate()+1)
+     
+      nextVal=JSON.stringify(next)
+      
+      if(dates.includes(JSON.parse(nextVal))){
+        console.log("TRUE")
+        oldDates.push(new Date(JSON.parse(nextVal)))
+      }
+
+    })
+    */
+  }catch(err){
+    console.log(err)
+  }
+  })
+}catch(err){
+  console.log(err)
+}
+setTimeout(()=>{
+  res.send({sorted:oldDates,old:arr[0]})
+},3000)
+})
 router.get("/unavailable-dates",async(req,res)=>{
 
-  const booked=await BookedDate.find({})
+axios.get("http://localhost:3012/admin-applications/blocked-booked-dates").then((response)=>{
+  if(response.data.success){
+    if(response.data.length>0){
+      const dates=response.data.dates
+      var start=new Date(dates[0])
+      finalStart=new Date(start)
+      dates.map((b)=>{
+       
+        b=new Date(b)
+        if(b<start){
+          start=new Date(b)
+          console.log(start)
+        }
+        if(start<finalStart){
+          finalStart=new Date(start)
+        }
+
+      })
+      
+      setTimeout(()=>{
+        try{sort(dates).then(()=>{
+          
+          res.json({success:true,start:finalStart,dates:dates})
+    
+        })
+      }catch(err){
+        console.log("alreadysent")
+      }
+      },200)
+      
+    }
+  }
+})
+
+
+
+
+})
+
+router.get("/blocked-booked-dates",async(req,res)=>{
   const blocked=await BlockedDate.find({})
-  console.log(booked)
+  const booked=await BookedDate.find({})
+  
   var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
   "Aug","Sep","Oct","Nov","Dec"];
   var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
   var cDate=new Date()
   
   const dates=[]
-  if(blocked.length>0){
+  var i=0
+  const curr=new Date()
   blocked.map((b)=>{
-    var date=b.day.split(" ")
-     console.log(date)
- 
-  date=new Date(date[3],monthnum[months.indexOf(date[1])-1],date[2])
-  console.log(date)
-    dates.push(date)
-    if(dates.length==booked.length+blocked.length){
-      res.json({success:true,dates:dates})
+    
+    var s=b.day
+    s=s.split(" ")
+    date=new Date(s[3],monthnum[months.indexOf(s[1])-1],s[2])
+    if(date>=curr && !dates.includes(date)){
+      dates.push(date)
     }
-  })  
-}
-  if(booked.length>0){
+  })
+
   booked.map((b)=>{
-    console.log(b)
-    var date=b.date.split(" ")
-     console.log(date)
- 
-  date=new Date(date[3],monthnum[months.indexOf(date[1])-1],date[2])
-  console.log(date)
-    dates.push(date)
-    if(dates.length==booked.length+blocked.length){
-      res.json({success:true,dates:dates})
+    var s=b.date
+    s=s.split(" ")
+    date=new Date(s[3],monthnum[months.indexOf(s[1])-1],s[2])
+    if(date>=curr && !dates.includes(date)){
+      dates.push(date)
     }
-  })  
+  })
+  setTimeout(()=>{
+    
+    res.json({success:true,dates:dates,length:dates.length})
+
+  },500)
+})
+async function sort(arr){
+  var i=0
+  
+ const arr3=await sort2(arr,0,arr.length-1,arr2,i)
+ return arr3
+
+ 
+}
+async function sort2(arr,l,r,arr2,i){
+ 
+  if(l<r && i<arr.length-1){
+    console.log(i)
+    var m=l+(r-l)/2
+    //console.log(m +" "+ l+" "+ r)
+    sort2(arr,l,m,i+1)
+    sort2(arr,m+1,r,i+1)
+    merge(arr,l,m,r,i,arr2)
+    
+    
+  }
+  setTimeout(()=>{
+    return arr
+  ,2000})
 }
 
+function merge(arr,l,m,r,index,arr2){
+  console.log("here:"+index)
 
-})
+  const n1=l+m+1;
+  const n2=r-m
+
+  const L=[]
+  const R=[]
+
+  for(let ii=0;ii<n1;++ii){
+    //console.log(L[ii])
+    L[ii]=new Date(arr[l+ii]);
+  }
+  for(let jj=0;jj<n2;++jj){
+    R[jj]=new Date(arr[jj+m+1]);
+   // console.log(R[jj].toString())
+  }
+ var  i=0
+ var j=0
+ var  k=l
+ if(i<10){
+  while(i<n1 && j<n2){
+    if(L[i]<=R[j] ){
+      if((Object.prototype.toString.call(L[i]) === "[object Date]")){
+     //console.log(L[i])
+      arr2[k]=new Date(L[i])
+      i++
+      k++
+      }else{
+        return
+      }
+    }else{
+     //console.log(R[j] )
+     if((Object.prototype.toString.call(R[j]) === "[object Date]")){
+      arr2[k]=new Date(R[j])
+      k++
+      j++
+     }else{
+      return
+     }
+    }
+  }
+
+  while(i<n1){
+    if((Object.prototype.toString.call(L[i]) === "[object Date]")){
+     // console.log(L[i])
+       arr2[k]=new Date(L[i])
+       i++
+       k++
+       }else{
+         break
+       }
+  }
+  while(j<n2){
+
+    if((Object.prototype.toString.call(R[j]) === "[object Date]")){
+     // console.log(new Date(L[i]))
+       arr2[k]=new Date(R[j])
+       j++
+       k++
+       }else{
+         break
+       }
+  }
+  setTimeout(()=>{
+    
+    return arr2
+  },500)
+}
+}
 /************************************************************* */
 router.get("/newGetPaymentDueDate",async(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
   res.setHeader("Access-Control-Allow-Origin", "*");
