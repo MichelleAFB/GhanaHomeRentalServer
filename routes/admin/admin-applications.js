@@ -347,7 +347,7 @@ router.get("/active",async(req,res)=>{
 
   apps.map((a)=>{
     
-    axios.get("http://localhost:3012/admin-applications/ActiveStatus/"+a._id).then((response)=>{
+    axios.get("https://ghanahomestayserver.onrender.com/admin-applications/ActiveStatus/"+a._id).then((response)=>{
       console.log(response.data)
       
       console.log("\n\n")
@@ -1104,7 +1104,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                   //TODO:EITHER CHANGED TO CHECKEDOUT OUT IF PERSON FORGOT TO CHECKOUT OR DONT
                    if(cDate>endDate &&  (activeDate>=start && activeDate<=endDate)  ){
                   console.log("confirmed but but person forgot to checkout")
-                 axios.post("http://localhost:3012/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
+                 axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
                     if(response.data.success){
                       console.log(app.stay_start_date+" changed to checkout by force")
                       res.json({success,currentlyOccupied:false})
@@ -1397,7 +1397,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
               console.log("\n\nour date")
               console.log(our_dates)
               var index=0
-                axios.get("http://localhost:3012/admin-applications/checkBlockedDates").then((response2)=>{
+                axios.get("https://ghanahomestayserver.onrender.com/admin-applications/checkBlockedDates").then((response2)=>{
                   if(response2.data.blocked_dates.length>0){
                     res.json({success:true,approved:false,conflicting_dates:response.data.blocked})
                   }else{
@@ -1518,7 +1518,7 @@ router.get("/activeStatus/:id",async(req,res)=>{
                   //TODO:EITHER CHANGED TO CHECKEDOUT OUT IF PERSON FORGOT TO CHECKOUT OR DONT
                    if(cDate>endDate &&  (activeDate>=start && activeDate<=endDate)  ){
                   console.log("confirmed but but person forgot to checkout")
-                /*  axios.get("http://localhost:3012/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
+                /*  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
                     if(response.data.success){
                       console.log(app.stay_start_date+" changed to checkout by force")
                       //TODO res.json({success,currentlyOccupied:false})
@@ -2223,7 +2223,7 @@ router.get("/find-dates",(req,res)=>{
 
   
   try{
-  axios.get("http://localhost:3012/admin-applications/blocked-booked-dates").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/blocked-booked-dates").then((response)=>{
    try{ 
     var goo=true;
 console.log(response.data.dates)
@@ -2443,7 +2443,7 @@ router.get("/sort-unavailable",(req,res)=>{
   const arr=[]
   
   try{
-  axios.get("http://localhost:3012/admin-applications/unavailable-dates").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/unavailable-dates").then((response)=>{
    try{ 
     console.log(response.data.dates)
     const dates=response.data.dates
@@ -2560,7 +2560,7 @@ setTimeout(()=>{
 })
 router.get("/unavailable-dates",async(req,res)=>{
 
-axios.get("http://localhost:3012/admin-applications/blocked-booked-dates").then((response)=>{
+axios.get("https://ghanahomestayserver.onrender.com/admin-applications/blocked-booked-dates").then((response)=>{
   if(response.data.success){
     if(response.data.length>0){
       const dates=response.data.dates
