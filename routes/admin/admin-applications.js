@@ -2217,138 +2217,216 @@ router.get("/checkPaymentDeadline/:id",async(req,res)=>{
 const arr2=[]
 router.get("/find-dates",(req,res)=>{
   var oldDates=[]
-  const arr=[]
+  var arr=[]
+  var arr2=[]
+  index=0
+
   
   try{
-  axios.get("https://ghanahomerental.onrender.com/admin-applications/blocked-booked-dates").then((response)=>{
+  axios.get("http://localhost:3012/admin-applications/blocked-booked-dates").then((response)=>{
    try{ 
     var goo=true;
 console.log(response.data.dates)
 const d=response.data.dates
+arr=d
     const dates=response.data.dates
-  
+    const alldates=[]
     console.log(dates.length)
     var min = dates.reduce(function (a, b) { return a < b ? a : b; }); 
     console.log(min)
-    oldDates.push(new Date(min))
-    while(dates.length>2){
-   
-      if(goo==true){
+    oldDates.push(JSON.stringify(min))
+    alldates.push(new Date(min))
+    var kill=false
+
+    while(dates.length>0 && !kill){
+      
+      console.log("kill:"+kill)
+      if(goo==true && !kill){
        console.log(goo)
         console.log(dates.length) 
         console.log(typeof(min))
         var next=new Date(min)
         next=new Date(next.setDate(next.getDate()+1))
         var nextVal=JSON.stringify(next)
-        //console.log("min:"+min)
-        //console.log("next:"+nextVal+"\n")
-        if(!oldDates.includes(JSON.parse(nextVal))&& dates.includes(JSON.parse(nextVal))){
+       
+        if(!oldDates.includes(JSON.parse(nextVal))&& dates.includes(JSON.parse(nextVal)) && !alldates.includes(JSON.parse(nextVal))){
           goo=true
-          oldDates.push(next)
+          oldDates.push(nextVal)
+          alldates.push(next)
+
           console.log("removing:"+dates[dates.indexOf(min)])
 
           dates.splice(dates.indexOf(min),1)
-          min = dates.reduce(function (a, b) { return a <= b ? a : b; }); 
+          if(dates.length==1){
+            min=dates[0]
+          }else if(dates.length==2){
+            var min1=new Date(dates[0])
+            var min2=new Date(dates[1])
+            min=Math.min(min1,min2)
+            console.log("DOWN TO TWO:"+min)
+          }else{
+            min = dates.reduce(function (a, b) { return a <= b ? a : b; }); 
+
+          }
           console.log("NEW MIN: "+min)
           console.log(dates)
+          
+       
         }else{
           next=new Date(next.setDate(next.getDate()+1))
+          console.log("starting new:"+dates.includes(JSON.parse(JSON.stringify(next))))
+          console.log(next+"\n\n\n\n\n\n")
+
 
         console.log("SWITCHING-----------------------------------")
         goo=false 
         
 
         }
-      }else{ 
-        
-        if(!oldDates.includes(JSON.parse(nextVal)) && dates.includes(JSON.parse(nextVal))){
-          console.log("here")
-           oldDates.push(next)
-           dates.splice(dates.indexOf(min),1)
-           min = dates.reduce(function (a, b) { return a <= b ? a : b; }); 
-          // next=new Date(next.setDate(next.getDate()+1))
-           goo=true
-         
-
-         }else{
-           
-
-         
-         
-         }
-      
-
-        console.log("NOT FOUNDDDDD")   
-        console.log(nextVal +" "+min)
-        console.log("here:"+dates.includes((JSON.parse(nextVal))))
-        var maxL = dates.reduce(function (a, b) { return a > b ? a : b; }); 
-        console.log("max: "+maxL)  
-        if(!oldDates.includes(JSON.parse(nextVal)) && dates.includes(JSON.parse(nextVal))){
-          console.log("here")
-           oldDates.push(next)
-           dates.splice(dates.indexOf(min),1)
-           min = dates.reduce(function (a, b) { return a <= b ? a : b; }); 
-          // next=new Date(next.setDate(next.getDate()+1))
-           goo=true
-         
-
-         }else{
-           
-
-         
-         
-         }
-       while((new Date(maxL))>(new Date(next)) && !dates.includes(new Date(JSON.parse(nextVal)))){
-                  
- 
-          var next=new Date(next) 
-          next=new Date(next.setDate(next.getDate()+1))
-          var nextVal=JSON.stringify(next)
-          console.log("min:"+min) 
-          console.log("next:"+nextVal+"\n")
-          console.log("here:"+dates.includes(new Date(JSON.parse(nextVal))))
-
-          if(!oldDates.includes(JSON.parse(nextVal)) && dates.includes(JSON.parse(nextVal))){
-           console.log("here")
-            oldDates.push(new Date(next))
-            dates.splice(dates.indexOf(min),1)
-            min = dates.reduce(function (a, b) { return a <= b ? a : b; }); 
-           // next=new Date(next.setDate(next.getDate()+1))
-            goo=true
-          
-
-          }else{
-            
-
-          
-          
-          }
+        if(dates.length==0){
+          kill=true
+          break
         }
+        
+
+      }else{ 
+        console.log("old min:  "+min)
+     
+       
+       
       
+        dates.splice(dates.indexOf(min),1);
+        console.log("dup:"+(!oldDates.includes(JSON.stringify(min))))
+        if(!oldDates.includes(JSON.stringify(min))){
+          oldDates.push(JSON.stringify(min))
+          alldates.push(min)
+
+
+        }
+        console.log(oldDates)
+        console.log(dates.length)
+        if(dates.length==0){
+          arr2.push(JSON.stringify(oldDates))
+         
+
+          console.log("\n\narr2:")
+          console.log(arr2.length)
+          index++
+         
+          kill=true;
+          console.log("kill here:"+kill)
+          break;
+        }
+       
+     
+        min = dates.reduce(function (a, b) { return a <= b ? a : b; }); 
+        console.log("new min:"+min)
+        
+        arr2.push(JSON.stringify(oldDates))
+        console.log("\n\narr2:")
+        console.log(JSON.parse(arr2))
+        index++
+        oldDates.splice(0,oldDates.length)
+        alldates.push(new Date(min))
+
+        oldDates.push(JSON.stringify(min))
+       
+        goo=true
+        if(dates.length==0){
+          kill=true;
+          console.log("kill here:"+kill)
+          break;
+        }
+        console.log(kill)
+        console.log(dates)
+        //console.log(oldDates)
+    
         
       }
 
     }
     const datess=[]
     const datesss=[]
-    setTimeout(()=>{
-      oldDates.map((a)=>{
-        if(!datess.includes(JSON.stringify(a))){
-          const d=new Date(a)
-          datess.push(JSON.stringify(a))
-          datesss.push(new Date(a))
 
-          console.log(typeof(a)+" "+typeof(dates[0]))
+    alld=[]
+    var ii=0
+    console.log(alldates)
+    alldates.map((a)=>{
+     
+      if(ii>0){
+      var ar=new Date(alld[ii-1].toString())
+
+      var aa= new Date(Date.parse(alld[ii-1]))
+     
+        
+    
+        console.log(a.toString()==ar.toString())
+       
+      if(ar!=a){
+        console.log(a+ " "+ar)
+
+        //console.log(new Date(ar.toISOString())+"    "+aa)
+        alld.push(ar)
+       
+      }
+      ii++
+    }if(ii==0){
+      alld.push(new Date(a))
+
+    }
+    })
+  
+    setTimeout(()=>{
+      console.log("\n\n\n\n\n\n\nend:")
+      //console.log(JSON.parse())
+      var j=0
+     // console.log(JSON.parse(arr2[j]))
+    
+    
+      
+      while(j<arr2.length){
+        const a=JSON.parse(arr2[j])
+        console.log(arr2.length)
+        
+        var i=0
+        //console.log(JSON.parse(a))
+        var start
+        var end
+        while(i<JSON.parse(a.length)){
+       //  console.log(a.length)
+        if(!datess.includes(JSON.stringify(a))){
+         
+         
+          datess.push(JSON.stringify(a))
+          
+          //console.log(datess)
 
         }else{
-          console.log("DUP")
+        
         }
-      })
-    },1500)
+       setTimeout(()=>{
+       if(datess.length>0){
+        datesss.push({dates:JSON.stringify(datess)})
+        datess.splice(0,datess.length)
+       }
+        
+       },200)
+        i++
+      }
+      
+      j++
+     
+    }
+    setTimeout(()=>{
+      res.json({success:true,dates:datesss,allDates:alld})
+      
+     },1000)
+      
+    },1000)
 
     setTimeout(()=>{
-      res.json({success:true,dates:datesss})
-    },2000)
+     // res.json({success:true,length:datesss.length,dates:datesss})
+    },3000)
 
 
 
@@ -2408,11 +2486,16 @@ router.get("/sort-unavailable",(req,res)=>{
 
  
     }else{ 
-      console.log("NOT FOUNF")
-      dates.splice(dates.indexOf(min),1)
-      //console.log(dates)
-      console.log(dates.length)
       var min = dates.reduce(function (a, b) { return a < b ? a : b; }); 
+
+      oldDates.push(new Date(min))
+     // arr.push(oldDates)
+     
+      console.log("NOT FOUNF")
+      oldDates.splice(0,oldDates.length-1)
+      console.log(oldDates)
+      
+     min = dates.reduce(function (a, b) { return a < b ? a : b; }); 
       next=new Date(min) 
       next=new Date(next.setDate(next.getDate()+1))
        nextVal=JSON.stringify(next)
