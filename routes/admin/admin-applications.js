@@ -2215,6 +2215,14 @@ router.get("/checkPaymentDeadline/:id",async(req,res)=>{
 
 })
 const arr2=[]
+
+
+function calcTime(time,city, offset) {
+  var d = time;
+  var utc = d.getTime() - (d.getTimezoneOffset() * 60000);
+  var nd = new Date(utc + (3600000*offset));
+  return nd
+}
 router.get("/find-dates",(req,res)=>{
   var oldDates=[]
   var arr=[]
@@ -2231,11 +2239,15 @@ const d=response.data.dates
 arr=d
     const dates=response.data.dates
     const alldates=[]
+    const isoDates=[]
     console.log(dates.length)
     var min = dates.reduce(function (a, b) { return a < b ? a : b; }); 
-    console.log(min)
+
     oldDates.push(JSON.stringify(min))
+    console.log("min valid:"+((new Date(min)) instanceof Date))
+    console.log(new Date(min))
     alldates.push(new Date(min))
+ 
     var kill=false
 
     while(dates.length>0 && !kill){
@@ -2253,6 +2265,8 @@ arr=d
           goo=true
           oldDates.push(nextVal)
           alldates.push(next)
+         
+
 
           console.log("removing:"+dates[dates.indexOf(min)])
 
@@ -2300,11 +2314,12 @@ arr=d
         if(!oldDates.includes(JSON.stringify(min))){
           oldDates.push(JSON.stringify(min))
           alldates.push(min)
+          
+        
 
 
         }
-        console.log(oldDates)
-        console.log(dates.length)
+        
         if(dates.length==0){
           arr2.push(JSON.stringify(oldDates))
          
@@ -2323,12 +2338,9 @@ arr=d
         console.log("new min:"+min)
         
         arr2.push(JSON.stringify(oldDates))
-        console.log("\n\narr2:")
-        console.log(JSON.parse(arr2))
         index++
         oldDates.splice(0,oldDates.length)
         alldates.push(new Date(min))
-
         oldDates.push(JSON.stringify(min))
        
         goo=true
@@ -2337,8 +2349,7 @@ arr=d
           console.log("kill here:"+kill)
           break;
         }
-        console.log(kill)
-        console.log(dates)
+      
         //console.log(oldDates)
     
         
@@ -2351,20 +2362,20 @@ arr=d
     alld=[]
     var ii=0
     console.log(alldates)
+    console.log("\n\n\n\nALL DATES")
     alldates.map((a)=>{
      
       if(ii>0){
       var ar=new Date(alld[ii-1].toString())
 
       var aa= new Date(Date.parse(alld[ii-1]))
-     
-        
-    
-        console.log(a.toString()==ar.toString())
+     if(ii==alldates.length-1){
+     //alld. push(a)
+     }
        
       if(ar!=a){
-        console.log(a+ " "+ar)
-
+       
+        console.log(ar)
         //console.log(new Date(ar.toISOString())+"    "+aa)
         alld.push(ar)
        
@@ -2377,7 +2388,7 @@ arr=d
     })
   
     setTimeout(()=>{
-      console.log("\n\n\n\n\n\n\nend:")
+      
       //console.log(JSON.parse())
       var j=0
      // console.log(JSON.parse(arr2[j]))
@@ -2410,7 +2421,7 @@ arr=d
         datess.splice(0,datess.length)
        }
         
-       },200)
+       },100)
         i++
       }
       
@@ -2418,15 +2429,14 @@ arr=d
      
     }
     setTimeout(()=>{
-      res.json({success:true,dates:datesss,allDates:alld})
+      console.log(datess.length)
+      res.send({success:true,dates:datesss,allDates:alld})
       
      },1000)
       
     },1000)
 
-    setTimeout(()=>{
-     // res.json({success:true,length:datesss.length,dates:datesss})
-    },3000)
+  
 
 
 
@@ -2438,10 +2448,38 @@ arr=d
   console.log(err)
 }
 })
+
+router.get("/format-find-dates",(req,res)=>{
+
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/find-dates").then((response)=>{
+    if(response.data.success){
+      const dates=response.data.allDates
+     // const dates=response.data.dates
+    
+      const date=[]
+      const dateString=[]
+      if(dates.length>0){
+        dates.map((d)=>{
+          date.push(new Date(d))
+         var v=new Date(d)
+         console.log(v.toString())
+         if(!dateString.includes(v.toString().substring(0,15))){
+         dateString.push(v.toString().substring(0,15))
+         }
+         
+
+        })
+        setTimeout(()=>{
+            res.send({success:true,allDates:date,dates:response.data.dates,dateString:dateString})
+        },500)
+      }
+    }
+  })
+})
 router.get("/sort-unavailable",(req,res)=>{
   var oldDates=[]
   const arr=[]
-  
+  const dateString=[]
   try{
   axios.get("https://ghanahomestayserver.onrender.com/admin-applications/unavailable-dates").then((response)=>{
    try{ 
@@ -2556,7 +2594,7 @@ router.get("/sort-unavailable",(req,res)=>{
 }
 setTimeout(()=>{
   res.send({sorted:oldDates,old:arr[0]})
-},3000)
+},1000)
 })
 router.get("/unavailable-dates",async(req,res)=>{
 
@@ -2611,6 +2649,8 @@ router.get("/blocked-booked-dates",async(req,res)=>{
   const dates=[]
   var i=0
   const curr=new Date()
+  var n=new Date()
+  var nextnext=n.setDate(n.getDate()-1)
   blocked.map((b)=>{
     
     var s=b.day
@@ -2625,7 +2665,7 @@ router.get("/blocked-booked-dates",async(req,res)=>{
     var s=b.date
     s=s.split(" ")
     date=new Date(s[3],monthnum[months.indexOf(s[1])-1],s[2])
-    if(date>=curr && !dates.includes(date)){
+    if(date>=nextnext && !dates.includes(date)){
       dates.push(date)
     }
   })
