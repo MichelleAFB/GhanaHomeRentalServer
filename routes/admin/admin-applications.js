@@ -474,6 +474,8 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
         )
         const updatedApp=await Application.find({$and:[{"_id":req.params.id}]})
         console.log(application)
+        res.json({success:true,no_applications:application.matchedCount,application:updatedApp})
+
         if(application.acknowledged==true){
           res.json({success:true,no_applications:application.matchedCount,application:updatedApp})
         }else{

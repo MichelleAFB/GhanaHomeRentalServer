@@ -107,7 +107,7 @@ router.post("/sign-in-admin",async(req,res)=>{
   const prom=new Promise(async(resolve,reject)=>{
     var user=await User.find({
       $and:[
-        {"email":email},
+        +        {"email":email},
         {"admin_id":adminId},
         {"admin":1}
       ]
