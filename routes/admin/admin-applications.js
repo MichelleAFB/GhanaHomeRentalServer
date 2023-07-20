@@ -792,7 +792,7 @@ router.get("/checkBlockedDates/",async(req,res)=>{
   const blocked_dates=[]
   const blocked=await BlockedDate.find({})
   blocked.map((b)=>{
-    blocked_dates.push(d.day)
+    blocked_dates.push(b.day)
   })
   setTimeout(()=>{
     res.json({success:true,blocked_dates:blocked})
