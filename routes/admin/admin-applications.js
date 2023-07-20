@@ -2351,8 +2351,7 @@ arr=d
 
     alld=[]
     var ii=0
-    console.log(alldates)
-    console.log("\n\n\n\nALL DATES")
+   
     alldates.map((a)=>{
      
       if(ii>0){
@@ -2371,18 +2370,12 @@ arr=d
       ii++
     }if(ii==0){
       alld.push(new Date(a))
-
     }
     })
   
     setTimeout(()=>{
       
-      //console.log(JSON.parse())
       var j=0
-     // console.log(JSON.parse(arr2[j]))
-    
-    
-      
       while(j<arr2.length){
         const a=JSON.parse(arr2[j])
         console.log(arr2.length)
@@ -2408,7 +2401,7 @@ arr=d
         datess.splice(0,datess.length)
        }
         
-       },100)
+       },10)
         i++
       }
       
@@ -2419,9 +2412,9 @@ arr=d
       console.log(datess.length)
       res.send({success:true,dates:datesss,allDates:alld})
       
-     },1000)
+     },20)
       
-    },1000)
+    },250)
 
   
 
@@ -2437,11 +2430,11 @@ arr=d
 })
 
 router.get("/format-find-dates",(req,res)=>{
-
-  axios.get("http://localhost:3012/admin-applications/find-dates").then((response)=>{
+  var start=new Date()
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/find-dates").then((response)=>{
     if(response.data.success){
       const dates=response.data.allDates
-     // const dates=response.data.dates
+     
     
       const date=[]
       const dateString=[]
@@ -2451,16 +2444,10 @@ router.get("/format-find-dates",(req,res)=>{
          var v=new Date(d)
          //console.log(d.toString())
          var u=new Date(v.setDate(v.getUTCDate()))
-         
-         console.log(u)
          const rr=new Date()
          
          const r=new Date(rr.setDate(u.getDate()))
 
-         console.log("\nr:"+r.toString())
-         if(r.toString().substring(0,15)=='Mon Jul 31 2023'){
-          console.log("\n\nMATCH JUL 31")
-         }
 
          if(!dateString.includes(v.toString().substring(0,15))){
          dateString.push(v.toString().substring(0,15))
@@ -2469,8 +2456,8 @@ router.get("/format-find-dates",(req,res)=>{
 
         })
         setTimeout(()=>{
-            res.send({success:true,allDates:date,dates:response.data.dates,dateString:dateString})
-        },500)
+            res.send({time:(new Date())-start,success:true,allDates:date,dates:response.data.dates,dateString:dateString})
+        },150)
       }
     }
   })
@@ -2672,7 +2659,7 @@ router.get("/blocked-booked-dates",async(req,res)=>{
     
     res.json({success:true,dates:dates,length:dates.length})
 
-  },500)
+  },300)
 })
 async function sort(arr){
   var i=0
