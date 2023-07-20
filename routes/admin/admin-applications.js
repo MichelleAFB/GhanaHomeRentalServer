@@ -2234,7 +2234,7 @@ router.get("/find-dates",(req,res)=>{
   axios.get("https://ghanahomestayserver.onrender.com/admin-applications/blocked-booked-dates").then((response)=>{
    try{ 
     var goo=true;
-console.log(response.data.dates)
+
 const d=response.data.dates
 arr=d
     const dates=response.data.dates
@@ -2244,8 +2244,7 @@ arr=d
     var min = dates.reduce(function (a, b) { return a < b ? a : b; }); 
 
     oldDates.push(JSON.stringify(min))
-    console.log("min valid:"+((new Date(min)) instanceof Date))
-    console.log(new Date(min))
+
     alldates.push(new Date(min))
  
     var kill=false
@@ -2254,9 +2253,7 @@ arr=d
       
       console.log("kill:"+kill)
       if(goo==true && !kill){
-       console.log(goo)
-        console.log(dates.length) 
-        console.log(typeof(min))
+      
         var next=new Date(min)
         next=new Date(next.setDate(next.getDate()+1))
         var nextVal=JSON.stringify(next)
@@ -2277,22 +2274,18 @@ arr=d
             var min1=new Date(dates[0])
             var min2=new Date(dates[1])
             min=Math.min(min1,min2)
-            console.log("DOWN TO TWO:"+min)
+          
           }else{
             min = dates.reduce(function (a, b) { return a <= b ? a : b; }); 
 
           }
-          console.log("NEW MIN: "+min)
-          console.log(dates)
+      
           
        
         }else{
           next=new Date(next.setDate(next.getDate()+1))
           console.log("starting new:"+dates.includes(JSON.parse(JSON.stringify(next))))
-          console.log(next+"\n\n\n\n\n\n")
-
-
-        console.log("SWITCHING-----------------------------------")
+        
         goo=false 
         
 
@@ -2304,13 +2297,13 @@ arr=d
         
 
       }else{ 
-        console.log("old min:  "+min)
+     
      
        
        
       
         dates.splice(dates.indexOf(min),1);
-        console.log("dup:"+(!oldDates.includes(JSON.stringify(min))))
+      
         if(!oldDates.includes(JSON.stringify(min))){
           oldDates.push(JSON.stringify(min))
           alldates.push(min)
@@ -2322,10 +2315,7 @@ arr=d
         
         if(dates.length==0){
           arr2.push(JSON.stringify(oldDates))
-         
-
-          console.log("\n\narr2:")
-          console.log(arr2.length)
+     
           index++
          
           kill=true;
@@ -2374,9 +2364,7 @@ arr=d
      }
        
       if(ar!=a){
-       
-        console.log(ar)
-        //console.log(new Date(ar.toISOString())+"    "+aa)
+
         alld.push(ar)
        
       }
@@ -2410,7 +2398,6 @@ arr=d
          
           datess.push(JSON.stringify(a))
           
-          //console.log(datess)
 
         }else{
         
@@ -2451,7 +2438,7 @@ arr=d
 
 router.get("/format-find-dates",(req,res)=>{
 
-  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/find-dates").then((response)=>{
+  axios.get("http://localhost:3012/admin-applications/find-dates").then((response)=>{
     if(response.data.success){
       const dates=response.data.allDates
      // const dates=response.data.dates
@@ -2462,7 +2449,19 @@ router.get("/format-find-dates",(req,res)=>{
         dates.map((d)=>{
           date.push(new Date(d))
          var v=new Date(d)
-         console.log(v.toString())
+         //console.log(d.toString())
+         var u=new Date(v.setDate(v.getUTCDate()))
+         
+         console.log(u)
+         const rr=new Date()
+         
+         const r=new Date(rr.setDate(u.getDate()))
+
+         console.log("\nr:"+r.toString())
+         if(r.toString().substring(0,15)=='Mon Jul 31 2023'){
+          console.log("\n\nMATCH JUL 31")
+         }
+
          if(!dateString.includes(v.toString().substring(0,15))){
          dateString.push(v.toString().substring(0,15))
          }
