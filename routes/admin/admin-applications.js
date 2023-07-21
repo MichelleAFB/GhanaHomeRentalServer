@@ -515,7 +515,7 @@ router.get("/checkAvailability/:id",async(req,res)=>{
   try{
   const applicationBooked=await BookedDate.find({$and:[{"application_id":req.params.id}]})
   
-
+    console.log(applicationBooked)
     var available=true
     const conflicting_dates=[]
     var all
@@ -641,7 +641,7 @@ router.get("/checkAvailability/:id",async(req,res)=>{
   db.query("select count(*) as appCount from ghanahomestay.booked_dates where id=?",req.params.id,(err,results)=>{
     const appCount=Object.values(JSON.parse(JSON.stringify(results)))
     const count=appCount[0].appCount
-   console.log("aarrLength checkAvailability:"+count)
+   console.log("aarrLength :"+count)
    arrLength=count
    db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err1,results1)=>{
     const appCount1=Object.values(JSON.parse(JSON.stringify(results1)))
@@ -792,12 +792,12 @@ router.get("/checkAvailability/:id",async(req,res)=>{
 
 */
 
-router.get("/checkBlockedDates/",async(req,res)=>{
+router.post("/checkBlockedDates",async(req,res)=>{
   console.log(req)
   const conflict=[]
   var conflicted=false
   console.log("CHECK")
-  console.log(req.body)
+ 
   const blocked_dates=[]
   const start=await BlockedDate.find({$and:[{"day":req.body.startBuffer}]})
   const end=await BlockedDate.find({$and:[{"day":req.body.endBuffer}]})
@@ -1415,7 +1415,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
         }else{
           var indLength=0
                 var alreadyBooked=0
-          axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
+          axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
             console.log(response.data)
             if(response.data.success){
               console.log(response.data)
@@ -1423,7 +1423,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
               console.log("\n\nour date")
               console.log(our_dates)
               var index=0
-                axios.get("http://localhost:3012/admin-applications/https://ghanahomestayserver.onrender.com/edDates",{dates:response.data.booked_dates,startBuffer:response.data.startBuffer,endBuffer:response.data.endBuffer}).then((response2)=>{
+                axios.post("https://ghanahomestayserver.onrender.com/admin-applications/checkBlockedDates",{dates:response.data.booked_dates,startBuffer:response.data.startBuffer,endBuffer:response.data.endBuffer}).then((response2)=>{
                   console.log(response2.data)
                   if(response2.data.blocked==true || response2.data.blocked_dates.length>0){
                     console.log(response2.data)
