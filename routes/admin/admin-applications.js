@@ -17,6 +17,8 @@ const {BookedDate}=require('../../models/BookedDates')
 const{BlockedDate}=require("../../models/BlockedDates")
 
 router.use(bodyParser.json());
+router.use(express.json())
+
 var corsOptions = {
   origin: "*",
   optionsSuccessStatus: 200,
@@ -84,7 +86,9 @@ function handleDisconnect() {
 //handleDisconnect();
 
 
-
+router.get("/body",(req,res)=>{
+  console.log(req.body)
+})
 
 
 router.get("/", async(req, res) => {
@@ -788,14 +792,31 @@ router.get("/checkAvailability/:id",async(req,res)=>{
 
 */
 
-router.get("/checkBlockedDates/",async(req,res)=>{
+router.get("/https://ghanahomestayserver.onrender.com/edDates/",async(req,res)=>{
+  console.log(req)
+  const conflict=[]
+  var conflicted=false
+  console.log("CHECK")
+  console.log(req.body)
   const blocked_dates=[]
-  const blocked=await BlockedDate.find({})
-  blocked.map((b)=>{
-    blocked_dates.push(b.day)
+  const start=await BlockedDate.find({$and:[{"day":req.body.startBuffer}]})
+  const end=await BlockedDate.find({$and:[{"day":req.body.endBuffer}]})
+  const booked=req.body.dates
+
+  booked.map(async(b)=>{
+    var block=await BlockedDate.find({$and:[{"day":b.day}]})
+    console.log(block)
+    if(block[0]!=null){
+      conflicted=true;
+      conflict.push(block[0])
+    }
   })
+  
+  
+
+
   setTimeout(()=>{
-    res.json({success:true,blocked_dates:blocked})
+    res.json({success:true,blocked_dates:conflict,blocked:conflicted})
   },200)
 })
 
@@ -1277,10 +1298,11 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
 
 router.post("/approve-booking/:id",async(req,res)=>{  
   res.setHeader("Access-Control-Allow-Origin","*")
-  
+  console.log(req.params)
 
   axios.get("https://ghanahomestayserver.onrender.com/admin-applications/checkAvailability/"+req.params.id).then(async(response)=>{
-   
+    console.log(req.params)
+
    
     console.log(response.data)
     console.log("conflict"+response.data.conflicting_dates.length)
@@ -1298,7 +1320,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
       console.log("fdsd")
       res.json({success:true,approved:false,message:"not paid",paid:response.data.paid,conflicting_dates:response.data.conflicting_dates})
     }
-    if(conflicting_dates.length==0  && response.data.success){
+    if(conflicting_dates.length==0  &&response.data.paid && response.data.success){
       var app=await Application.find({$and:[{"_id":req.params.id}]})
       app=app[0]
       
@@ -1326,7 +1348,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
                 })
               })
               if(index>0){
-                  
+                  console.log("here")
                 res.json({success:true,approved:false,conflicting_dates:conflicts,paid:true,message:"conflicting dates"})
               }else{
                 var indLength=0
@@ -1393,20 +1415,26 @@ router.post("/approve-booking/:id",async(req,res)=>{
         }else{
           var indLength=0
                 var alreadyBooked=0
-          axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
+          axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
+            console.log(response.data)
             if(response.data.success){
+              console.log(response.data)
               const our_dates=response.data.booked_dates
               console.log("\n\nour date")
               console.log(our_dates)
               var index=0
-                axios.get("https://ghanahomestayserver.onrender.com/admin-applications/checkBlockedDates").then((response2)=>{
-                  if(response2.data.blocked_dates.length>0){
+                axios.get("http://localhost:3012/admin-applications/https://ghanahomestayserver.onrender.com/edDates",{dates:response.data.booked_dates,startBuffer:response.data.startBuffer,endBuffer:response.data.endBuffer}).then((response2)=>{
+                  console.log(response2.data)
+                  if(response2.data.blocked==true || response2.data.blocked_dates.length>0){
+                    console.log(response2.data)
+                    console.log("ggre")
                     res.json({success:true,approved:false,conflicting_dates:response.data.blocked})
                   }else{
-
+                    console.log("HERE") 
+                    console.log(our_dates)
                 const prom2=new Promise((resolve2,reject2)=>{
                   //Insure no duplicate entries
-                  our_dates.map(async(o)=>{
+                  our_dates.map(async(o)=>{ 
                     try{
                       console.log("here1")
                     var alreadybooked=await BookedDate.find({$and:[{"date":o.date},{"application_id":req.params.id}]})
@@ -1479,6 +1507,11 @@ router.post("/approve-booking/:id",async(req,res)=>{
     }
   }
   })
+})
+
+router.get("/remove-booked-dates/:id",async(req,res)=>{
+  const deleted=await BookedDate.deleteMany({$and:[{"application_id":req.params.id}]})
+  res.json({success:true,deleted:deleted})
 })
 /*
 router.get("/activeStatus/:id",async(req,res)=>{
@@ -1692,60 +1725,10 @@ router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
   res.json({success:false,message:"application "+req.params.id+" does not exist"})
 }
 
-  /*db.query("select count(*) as appCount from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
-    if(err){
-        console.log(err)
-        res.json({success:false,error:err})
-    }else{
-      const appCount=Object.values(JSON.parse(JSON.stringify(results)))
-      const count=appCount[0].appCount
-      console.log(count)
-      if(count>0){
-        db.query("select * from ghanahomestay.applications where id=?",req.params.id,(err1,results1)=>{
-          if(err1){
-            console.log(err1)
-            res,json({success:false,error:err1})
-          }else{
-            const app=results1[0]
-            var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
-            "Aug","Sep","Oct","Nov","Dec"];
-            var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
-            var cDate=new Date()
-            console.log(app)
-            var index=1
-            console.log(cDate)
-            var st=app.stay_start_date.split(" ")
-            var et=app.stay_end_date.split(" ")
-           
-           const booked_dates=[]
-           
-            const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
-            const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
-            var nextDate=new Date(startDate);
-            booked_dates.push({application_id:req.params.id,date:startDate.toString().substring(0,15)})
 
-            while(nextDate.toString().substring(0,15)!=endDate.toString().substring(0,15)){
-              var nextnext=nextDate.setDate(nextDate.getDate()+1)
-              nextDate=new Date(nextnext)
-              console.log((nextDate.toString().substring(0,15)))
-              booked_dates.push({application_id:req.params.id,date:nextDate.toString().substring(0,15)})  
-              index++
-            }
-            console.log(booked_dates)
-            res.json({success:true,booked_dates:booked_dates,no_days:index})
-          }
-        })
-
-      }else{
-        res.json({success:false,message:"application "+req.params.id+" does not exist"})
-      }
-
-    }
-  })
-  */
 })
 
-//help:'/approve-booking
+//help:
 //calulates an array of all dates a reservation takes up
 router.get("/calculate-booked-dates-for-application/:id",async(req,res)=>{  res.setHeader("Access-Control-Allow-Origin","*")
   res.setHeader("Access-Control-Allow-Origin", "*");
