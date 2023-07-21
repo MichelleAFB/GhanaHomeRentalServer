@@ -792,7 +792,7 @@ router.get("/checkAvailability/:id",async(req,res)=>{
 
 */
 
-router.get("/https://ghanahomestayserver.onrender.com/edDates/",async(req,res)=>{
+router.get("/checkBlockedDates/",async(req,res)=>{
   console.log(req)
   const conflict=[]
   var conflicted=false
