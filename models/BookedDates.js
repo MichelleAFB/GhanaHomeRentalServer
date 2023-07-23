@@ -11,6 +11,23 @@ const bookedDatesSchema=new mongoose.Schema({
     type:String,
     required:true
   },
+  roomOne:{
+    type:Boolean,
+    default:false,
+  },
+  roomTwo:{
+    type:Boolean,
+    default:false
+  },
+  roomThree:{
+    type:Boolean,
+    default:false
+  },
+    fullSuite:{
+      type:Boolean,
+      default:true,
+
+  }
 
 })
 

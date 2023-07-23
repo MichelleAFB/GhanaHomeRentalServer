@@ -141,17 +141,22 @@ const applicationSchema=new mongoose.Schema({
     type:Boolean,
     default:true
   },
-  bedroom1:{
+
+  roomOne:{
     type:Boolean,
     default:false
   },
-  bedroom2:{
+  roomTwo:{
     type:Boolean,
     default:false
   },
-  bedroom3:{
+  roomThree:{
     type:Boolean,
     default:false
+  },
+  fullSuite:{
+    type:Boolean,
+    default:true
   }
 
 })

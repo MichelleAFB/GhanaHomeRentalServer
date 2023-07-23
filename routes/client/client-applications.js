@@ -249,7 +249,7 @@ router.post("/",async(req,res)=>{
 })
 router.post("/create-application",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
-  
+  console.log(req.body)
   const application =req.body
   const children=req.body.children
   const adults=req.body.adults
@@ -257,6 +257,7 @@ router.post("/create-application",async(req,res)=>{
   const ed=req.body.endDate.split(" ")
   const startDate=st[0]+" "+st[1]+" "+st[2]+" "+st[3]
   const endDate=ed[0]+" "+ed[1]+" "+ed[2]+" "+ed[3]
+  const rooms=req.body.rooms
   console.log(adults)
 
 
@@ -332,7 +333,11 @@ router.post("/create-application",async(req,res)=>{
       review:"",
       paymentSessionUrl:"",
       checkedIn:"",
-      timeCheckedIn:""
+      timeCheckedIn:"",
+      roomOne:rooms.roomOne,
+      roomTwo:rooms.roomTwo,
+      roomThree:rooms.roomThree,
+      fullSuite:rooms.fullSuite
     })
     const saved=await application.save()
     var adultSaved
@@ -372,7 +377,11 @@ router.post("/create-application",async(req,res)=>{
   }
   })
 })
-   
+
+router.get("/getRoomAvailability",(req,res)=>{
+  const start=req.body.startDate
+  const end=req.body.endDate
+})
 
 //get number of days
 router.get("/getNoDays/:id",async(req,res)=>{

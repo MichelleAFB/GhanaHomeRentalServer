@@ -1357,7 +1357,11 @@ router.post("/approve-booking/:id",async(req,res)=>{
                   //Insure no duplicate entries
                   const starter= new BookedDate({
                     application_id:req.params.id,
-                    date:response.data.startBuffer
+                    date:response.data.startBuffer,
+                    roomOne:app.roomOne,
+                    roomTwo:app.roomTwo,
+                    roomThree:app.roomThree,
+                    fullSuite:app.fullSuite
                   })
                   const start=await starter.save()
                   our_dates.map(async(o)=>{
@@ -1724,6 +1728,50 @@ router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
 }else{
   res.json({success:false,message:"application "+req.params.id+" does not exist"})
 }
+
+
+})
+
+router.get("/allBookingDatesForApplication/:startDate/:endDate",async(req,res)=>{
+  res.setHeader("Access-Control-Allow-Origin", "*");
+
+
+  app=app[0]
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  var cDate=new Date()
+  var index=1
+
+  
+ 
+ const booked_dates=[]
+ 
+  const startDate=new Date(req.params.startDate)
+  const endDate=new Date(req.params.endDate)
+  var nextDate=new Date(startDate);
+  var start=new Date(startDate);
+  var startBuffer=start.setDate(startDate.getDate()-1)
+  var starterBuffer=new Date(startBuffer)
+
+  booked_dates.push({application_id:req.params.id,date:startDate.toString().substring(0,15)})
+
+  while(nextDate.toString().substring(0,15)!=endDate.toString().substring(0,15)){
+    var nextnext=nextDate.setDate(nextDate.getDate()+1)
+    nextDate=new Date(nextnext)
+    booked_dates.push({application_id:req.params.id,date:nextDate.toString().substring(0,15)})  
+    index++
+  }
+  var nextnext=nextDate.setDate(nextDate.getDate()+1)
+  nextDate=new Date(nextnext)
+  var endBuffer=new Date(nextDate)
+  endBuffer=endBuffer.toString().substring(0,15)
+  starterBuffer=starterBuffer.toString().substring(0,15)
+  console.log("end:"+endBuffer)
+
+  console.log(booked_dates)
+  res.json({success:true,no_days:index,startBuffer:starterBuffer,endBuffer:endBuffer,booked_dates:booked_dates})
+
 
 
 })
@@ -2395,7 +2443,7 @@ arr=d
     }
     setTimeout(()=>{
       console.log(datess.length)
-      res.send({success:true,dates:datesss,allDates:alld})
+      res.send({success:true,dates:datesss,allDates:alld,roomsAvailable:response.data.roomsAvailable})
       
      },20)
       
@@ -2441,7 +2489,7 @@ router.get("/format-find-dates",(req,res)=>{
 
         })
         setTimeout(()=>{
-            res.send({time:(new Date())-start,success:true,allDates:date,dates:response.data.dates,dateString:dateString})
+            res.send({time:(new Date())-start,success:true,allDates:date,dates:response.data.dates,dateString:dateString,roomsAvailable:response.data.roomsAvailable})
         },150)
       }
     }
@@ -2611,6 +2659,7 @@ axios.get("https://ghanahomestayserver.onrender.com/admin-applications/blocked-b
 router.get("/blocked-booked-dates",async(req,res)=>{
   const blocked=await BlockedDate.find({})
   const booked=await BookedDate.find({})
+  const roomsAvailable=[]
   
   var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
   "Aug","Sep","Oct","Nov","Dec"];
@@ -2628,23 +2677,76 @@ router.get("/blocked-booked-dates",async(req,res)=>{
     s=s.split(" ")
     date=new Date(s[3],monthnum[months.indexOf(s[1])-1],s[2])
     if(date>=curr && !dates.includes(date)){
+      console.log(date)
       dates.push(date)
     }
   })
-
-  booked.map((b)=>{
+  console.log("\n\nbooked")
+  console.log(booked)
+  booked.map(async(b)=>{
     var s=b.date
     s=s.split(" ")
+    var start= date=new Date(s[3],monthnum[months.indexOf(s[1])-1],s[2])
     date=new Date(s[3],monthnum[months.indexOf(s[1])-1],s[2])
+      const app=await Application.find({$and:[{"_id":b.application_id}]})
+     // console.log(app)
+    
+    //console.log("netnext:"+new Date(nextnext) + "\n date:"+date+"\n\n")
+    
+   
+    console.log(app[0].roomTwo)
+     
     if(date>=nextnext && !dates.includes(date)){
-      dates.push(date)
+      if(app[0].roomOne!=true && app[0].roomTwo!=true && app[0].roomThree!=true && app[0].fullSuite==true){
+       // console.log(date)
+       dates.push(date)
+      } 
     }
   })
+
   setTimeout(()=>{
     
-    res.json({success:true,dates:dates,length:dates.length})
+    res.json({success:true,dates:dates,length:dates.length,roomsAvailable:roomsAvailable})
 
-  },300)
+  },500)
+})
+
+router.get("/roomsAvailable",async(req,res)=>{
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+ 
+  const booked=await BookedDate.find({})
+  const dates=[]
+  booked.map(async(b)=>{
+    var app=await Application.find({$and:[{"_id":b.application_id}]})
+    app=app[0]
+    if(app.fullSuite!=true){
+      //console.log("FOUND")
+      var start=app.stay_start_date.split(" ")
+      var end =app.stay_end_date.split(" ")
+     
+      start=new Date(start[3],monthnum[months.indexOf(start[1])-1],start[2])
+
+      end=new Date(end[3],monthnum[months.indexOf(end[1])-1],end[2])
+      var next=new Date(start) 
+      var newdate=new Date()
+      next=new Date(next.setDate(next.getDate()+1))
+      console.log(start+ "  "+ next +"     \n\n"
+      )
+      console.log("end:"+end)
+     while(next<=end){
+      dates.push({roomOne:app.roomOne,roomTwo:app.roomTwo,roomThree:app.roomThree,date:next})
+      console.log(next)
+      next=new Date(next.setDate(next.getDate()+1))
+
+      }
+    }
+  })
+
+  setTimeout(()=>{
+    res.json({success:true,dates:dates})
+  },1000)
 })
 async function sort(arr){
   var i=0
