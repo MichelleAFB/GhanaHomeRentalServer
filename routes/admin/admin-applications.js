@@ -860,7 +860,7 @@ router.get("/blocked-dates",async(req,res)=>{
     blockedDates.map((b)=>{
       var date=b.day.split(" ")
       console.log(date)
-     
+      
       date=new Date(date[3],monthnum[months.indexOf(date[1])-1],date[2])
       console.log(date)
       blocked.push(date)
@@ -1434,31 +1434,78 @@ router.post("/approve-booking/:id",async(req,res)=>{
                     console.log("ggre")
                     res.json({success:true,approved:false,conflicting_dates:response.data.blocked})
                   }else{
-                    console.log("HERE") 
-                    console.log(our_dates)
-                const prom2=new Promise((resolve2,reject2)=>{
+                
+                const prom2=new Promise(async(resolve2,reject2)=>{
+                  var s=response.data.startBuffer
+                  var e=response.data.endBuffer
+                  console.log("\n\n"+s +"    "+e+"\n\n")
+                  var a=await Application.find({$and:[{"_id":req.params.id}]})
+                  a=a[0]
+                  if(a!=null){
+                  var alreadyBookedStart=await BookedDate.find({$and:[{"date":s.toString().substring(0,15)},{"application_id":req.params.id}]})
+                  var alreadyBookedEnd=await BookedDate.find({$and:[{"date":e.toString().substring(0,15)},{"application_id":req.params.id}]})
+             
+                  if(alreadyBookedStart[0]==null && s!=null){
+                    const newBookedStart= new BookedDate({
+                      application_id:req.params.id,
+                      date:s,
+                      romeOne:a.roomOne,
+                      roomTwo:a.roomTwo,
+                      roomThree:a.roomThree,
+                      fullSuite:a.fullSuite
+                    })
+                    indLength++
+                    const bookedSavedStart=await newBookedStart.save()
+
+                  }
+
                   //Insure no duplicate entries
-                  our_dates.map(async(o)=>{ 
-                    try{
-                      console.log("here1")
-                    var alreadybooked=await BookedDate.find({$and:[{"date":o.date},{"application_id":req.params.id}]})
-                    }catch(error){
-                      console.log(error)
-                    }
-                    console.log(alreadybooked)
-                    if(alreadybooked.length>0){
-                      alreadyBooked++
-                    }else{
-                      console.log("\n\nNEW BOOKED")
-                     const newBooked= new BookedDate({
-                        application_id:req.params.id,
-                        date:o.date
+                  setTimeout(()=>{
+                    our_dates.map(async(o)=>{ 
+                      try{
+                        console.log("here1")
+                      var alreadybooked=await BookedDate.find({$and:[{"date":o.date},{"application_id":a._id}]})
+                      }catch(error){
+                        console.log(error)
+                      }
+                      console.log(alreadybooked)
+                      if(alreadybooked.length>0){
+                        alreadyBooked++
+                      }else{
+                        console.log("\n\nNEW BOOKED")
+                       const newBooked= new BookedDate({
+                          application_id:req.params.id,
+                          date:o.date
+                        })
+                        const bookedSaved=await newBooked.save()
+                        indLength++
+                      }
+                    })
+
+                  },200)
+                 
+                  setTimeout(async()=>{
+                    if(alreadyBookedEnd[0]==null && e!=null){
+                      const newBookedEnd= new BookedDate({
+                        application_id:a._id,
+                        date:e,
+                        romeOne:a.roomOne,
+                        roomTwo:a.roomTwo,
+                        roomThree:a.roomThree,
+                        fullSuite:a.fullSuite
                       })
-                      const bookedSaved=await newBooked.save()
                       indLength++
+                      const bookedSavedEnd=await newBookedEnd.save()
+  
                     }
-                  })
+
+                  },400)
+            
+                }
+                setTimeout(()=>{
                   resolve2()
+                },700)
+                  
                 })
 
                    prom2.then(async()=>{
@@ -1513,6 +1560,12 @@ router.post("/approve-booking/:id",async(req,res)=>{
   })
 })
 
+
+
+router.get("/allBookedDates",async(req,res)=>{
+  const booked=await BookedDate.find({})
+  res.json({success:true,no_dates:booked.length,dates:booked})
+})
 router.get("/remove-booked-dates/:id",async(req,res)=>{
   const deleted=await BookedDate.deleteMany({$and:[{"application_id":req.params.id}]})
   res.json({success:true,deleted:deleted})
@@ -2489,7 +2542,10 @@ router.get("/format-find-dates",(req,res)=>{
 
         })
         setTimeout(()=>{
-            res.send({time:(new Date())-start,success:true,allDates:date,dates:response.data.dates,dateString:dateString,roomsAvailable:response.data.roomsAvailable})
+          axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roomsAvailable").then((response2)=>{
+            res.send({time:(new Date())-start,success:true,allDates:date,dates:response.data.dates,dateString:dateString,rooms_dates:response2.data.room_dates})
+          })
+           
         },150)
       }
     }
@@ -2674,10 +2730,11 @@ router.get("/blocked-booked-dates",async(req,res)=>{
   blocked.map((b)=>{
     
     var s=b.day
+    console.log(s)
     s=s.split(" ")
     date=new Date(s[3],monthnum[months.indexOf(s[1])-1],s[2])
     if(date>=curr && !dates.includes(date)){
-      console.log(date)
+      //console.log(date)
       dates.push(date)
     }
   })
@@ -2715,38 +2772,37 @@ router.get("/roomsAvailable",async(req,res)=>{
   var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
   "Aug","Sep","Oct","Nov","Dec"];
   var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+
+  //date=new Date(date[3],monthnum[months.indexOf(date[1])-1],date[2])
  
-  const booked=await BookedDate.find({})
+  
+  const apps=await Application.find({$and:[{"application_status":"CONFIRMED"},{"fullSuite":false}]})
   const dates=[]
-  booked.map(async(b)=>{
-    var app=await Application.find({$and:[{"_id":b.application_id}]})
-    app=app[0]
-    if(app.fullSuite!=true){
-      //console.log("FOUND")
-      var start=app.stay_start_date.split(" ")
-      var end =app.stay_end_date.split(" ")
-     
-      start=new Date(start[3],monthnum[months.indexOf(start[1])-1],start[2])
+  const allBook=[]
+  const datesArr=[]
+  apps.map(async(a)=>{
+    const booked=await BookedDate.find({$and:[{"application_id":a._id}]})
+   //const min= booked.reduce(function (a, b) { return new Date(a.date.split(" ")[3],monthnum[months.indexOf(a.date.split(" ")[1])-1],a.day.split(" ")[2]) < new Date(b.date.split(" ")[3],monthnum[months.indexOf(b.date.split(" ")[1])-1],b.date.split(" ")[2])  ? a : b; }); 
+   const max= booked.reduce(function (a, b) { return new Date(a.date.split(" ")[3],monthnum[months.indexOf(a.date.split(" ")[1])-1],a.date.split(" ")[2]) < new Date(b.date.split(" ")[3],monthnum[months.indexOf(b.date.split(" ")[1])-1],b.date.split(" ")[2])  ? a : b; }); 
+   const min= booked.reduce(function (a, b) { return new Date(a.date.split(" ")[3],monthnum[months.indexOf(a.date.split(" ")[1])-1],a.date.split(" ")[2]) > new Date(b.date.split(" ")[3],monthnum[months.indexOf(b.date.split(" ")[1])-1],b.date.split(" ")[2])  ? a : b; }); 
+    console.log(min)
+   console.log(max)
+   var mi=min.date.split(" ")
+   var ma=max.date.split(" ")
+   mi=new Date(mi[3],monthnum[months.indexOf(mi[1])-1],mi[2])
+   ma=new Date(ma[3],monthnum[months.indexOf(ma[1])-1],ma[2])
 
-      end=new Date(end[3],monthnum[months.indexOf(end[1])-1],end[2])
-      var next=new Date(start) 
-      var newdate=new Date()
-      next=new Date(next.setDate(next.getDate()+1))
-      console.log(start+ "  "+ next +"     \n\n"
-      )
-      console.log("end:"+end)
-     while(next<=end){
-      dates.push({roomOne:app.roomOne,roomTwo:app.roomTwo,roomThree:app.roomThree,date:next})
-      console.log(next)
-      next=new Date(next.setDate(next.getDate()+1))
 
-      }
-    }
+   dates.push({startDate:new Date(ma),endDate:new Date(mi),roomOne:a.roomOne,roomtwo:a.roomTwo,roomThree:a.roomThree})
+
+
+
+
   })
-
   setTimeout(()=>{
-    res.json({success:true,dates:dates})
-  },1000)
+    res.json({success:true,room_dates:dates})
+  },500)
+ 
 })
 async function sort(arr){
   var i=0
