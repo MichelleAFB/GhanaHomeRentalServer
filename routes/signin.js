@@ -233,7 +233,7 @@ router.post("/reset-password/:email",async(req,res)=>{
   const password=req.body.password
   const passwordConfirm=req.body.confirmPassword
   const email=req.params.email
-  console.logasync(req.body)
+  console.log(req.body)
   var user=await User.find(({$and:[{"email":email},{"admin":0}]}))
   console.log(user)
 
@@ -273,7 +273,7 @@ router.post("/reset-password/admin/:email",async(req,res)=>{
   const password=req.body.password
   const passwordConfirm=req.body.confirmPassword
   const email=req.params.email
-  console.logasync(req.body)
+  console.log(req.body)
 
   if(password==passwordConfirm){
     var user=await User.find(({$and:[{"email":email},{"admin":1}]}))
