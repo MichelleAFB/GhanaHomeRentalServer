@@ -263,7 +263,7 @@ router.post("/create-application",async(req,res)=>{
 
  //console.logasync(req.body)
  console.log(adults)
-  const applicant=adults.filter((u)=> u.association=="applicant")
+  const applicant=adults[0]
  
 
   const prom=new Promise(async(resolve,reject)=>{
@@ -274,7 +274,7 @@ router.post("/create-application",async(req,res)=>{
     console.log(applicant)
     const use= await User.find({
      $and:[
-       {"email":applicant[0].email}
+       {"email":applicant.email}
      ]
     })
     var user=use[0]
