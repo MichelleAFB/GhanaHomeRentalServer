@@ -2542,8 +2542,10 @@ router.get("/format-find-dates",(req,res)=>{
 
         })
         setTimeout(()=>{
+          console.log("here")
           axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roomsAvailable").then((response2)=>{
-            res.send({time:(new Date())-start,success:true,allDates:date,dates:response.data.dates,dateString:dateString,rooms_dates:response2.data.room_dates})
+            console.log(response2.data)
+            res.send({time:(new Date())-start,success:true,allDates:date,dates:response.data.dates,dateString:dateString,room_dates:response2.data.room_dates, room_string_dates:response2.data.room_string_dates,room_string_string:response2.data.room_string_strings})
           })
            
         },150)
@@ -2767,7 +2769,53 @@ router.get("/blocked-booked-dates",async(req,res)=>{
 
   },500)
 })
+ router.get("/roomsAvailableString",async(req,res)=>{
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
 
+  //date=new Date(date[3],monthnum[months.indexOf(date[1])-1],date[2])
+ const arr=[]
+ const all_dates=[]
+  const strings=[]
+  const apps=await Application.find({$and:[{"application_status":"CONFIRMED"},{"fullSuite":false}]})
+  if(apps.length>0){
+    apps.map( async(a)=>{
+        const booked=await BookedDate.find({$and:[{"application_id":a._id}]})
+        const min= booked.reduce(function (a, b) { return new Date(a.date.split(" ")[3],monthnum[months.indexOf(a.date.split(" ")[1])-1],a.date.split(" ")[2]) <new Date(b.date.split(" ")[3],monthnum[months.indexOf(b.date.split(" ")[1])-1],b.date.split(" ")[2])  ? a : b; }); 
+        const max= booked.reduce(function (a, b) { return new Date(a.date.split(" ")[3],monthnum[months.indexOf(a.date.split(" ")[1])-1],a.date.split(" ")[2]) > new Date(b.date.split(" ")[3],monthnum[months.indexOf(b.date.split(" ")[1])-1],b.date.split(" ")[2])  ? a : b; }); 
+        console.log(min)
+        console.log(max)
+        var start=min.date.split(" ")
+        start=new Date(start[3],monthnum[months.indexOf(start[1])-1],start[2])
+        var end=max.date.split(" ")
+        end=new Date(end[3],monthnum[months.indexOf(end[1])-1],end[2])
+        var next=new Date(start)
+        arr.push(start)
+       // next.setDate(start.getUTCDate())
+      var old=new Date(next)
+      console.log(next instanceof Date)
+      console.log(next.toString())
+      while(next<end){
+        arr.push(next);
+        const c=new Date(next)
+        strings.push(JSON.stringify(c.toString()))
+        old=new Date(next)
+       
+        next= new Date(next.setDate(old.getDate()+1))
+        console.log("next:"+next)
+
+
+      }
+      setTimeout(()=>{
+          all_dates.push(arr)
+      },60)
+    })
+  }
+  setTimeout(()=>{
+    res.json({success:true,string_dates:all_dates,string_string_dates:strings})
+  },500)
+ })
 router.get("/roomsAvailable",async(req,res)=>{
   var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
   "Aug","Sep","Oct","Nov","Dec"];
@@ -2793,14 +2841,18 @@ router.get("/roomsAvailable",async(req,res)=>{
    ma=new Date(ma[3],monthnum[months.indexOf(ma[1])-1],ma[2])
 
 
-   dates.push({startDate:new Date(ma),endDate:new Date(mi),roomOne:a.roomOne,roomtwo:a.roomTwo,roomThree:a.roomThree})
+   dates.push({startDate:new Date(ma),endDate:new Date(mi),roomOne:a.roomOne,roomTwo:a.roomTwo,roomThree:a.roomThree})
 
 
 
 
   })
   setTimeout(()=>{
-    res.json({success:true,room_dates:dates})
+    axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roomsAvailableString").then((response)=>{
+      console.log(response.data)
+      res.json({success:true,room_dates:dates,room_string_dates:response.data.string_dates,room_string_strings:response.data.string_string_dates})
+
+    })
   },500)
  
 })
