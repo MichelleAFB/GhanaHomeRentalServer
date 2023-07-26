@@ -137,10 +137,7 @@ const applicationSchema=new mongoose.Schema({
     type:String,
     required:false
   },
-  fullsuite:{
-    type:Boolean,
-    default:true
-  },
+
 
   roomOne:{
     type:Boolean,

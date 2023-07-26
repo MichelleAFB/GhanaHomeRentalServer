@@ -263,7 +263,7 @@ router.post("/create-application",async(req,res)=>{
 
  //console.logasync(req.body)
  console.log(adults)
-  const applicant=adults[0]
+  const applicant={firstname:req.body.firstname,middlename:req.body.middlename,lastname:req.body.lastname,email:req.body.email}
  
 
   const prom=new Promise(async(resolve,reject)=>{
@@ -277,7 +277,7 @@ router.post("/create-application",async(req,res)=>{
        {"email":applicant.email}
      ]
     })
-    var user=use[0]
+    var user={firstname:req.body.firstname,middlename:req.body.middleName,lastname:req.body.lastname,email:req.body.email}
    
 
     console.log("\n\n\n\n user")
@@ -291,7 +291,7 @@ router.post("/create-application",async(req,res)=>{
         var aLength=0
         var cLength=0
         console.log(children==null)
-     if(adults.hasOwnProperty("length")){
+     if(adults.length>0){
        aLength=adults.length
        console.log("lerngth true")
 

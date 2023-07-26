@@ -508,51 +508,136 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
 
 })
 
+
+router.get("/setRooms",async(req,res)=>{
+
+  const booked=await BookedDate.find({})
+  booked.map((b)=>{
+    console.log(b)
+    if(b.roomOne==null){
+      console.log("null")
+    }
+  })
+
+})
 /********************************************************************************************************************** */
 router.get("/checkAvailability/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   try{
   const applicationBooked=await BookedDate.find({$and:[{"application_id":req.params.id}]})
+  var  application=await Application.find({$and:[{"_id":req.params.id}]})
+  var app=application
   
-    console.log(applicationBooked)
+   var conflict_id
     var available=true
     const conflicting_dates=[]
     var all
     const conflicts=[]
     var dates
     const prom= new Promise((resolve,reject)=>{
-      axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
+      axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
         try{
            console.log(response.data)
             const booked_dates=response.data.booked_dates
             const alldates=await BookedDate.find({})
-            console.log(booked_dates)
+           // console.log(booked_dates)
             all=alldates
             dates=response.data.booked_dates
-            const start=response.data.startBuffer
-            const end=response.data.endBuffer
+            const start=response.data.startBuffer.toString().substring(0,15)
+            const end=response.data.endBuffer.toString().substring(0,15)
             var startConflict=false
             var endConflict=false
             if(alldates.length>0 && booked_dates.length>0){
-              alldates.map((date)=>{
+              booked_dates.map((bdate)=>{
+              
+                alldates.map((date)=>{
                   
-                booked_dates.map((bdate)=>{
+               
                   
                   
                   const bd=bdate.date.split(" ")
                   const d=date.date.split(" ")
-                  if(date.date==start){
-                    startConflict=true
+                 // console.log("-----------"+date.application_id+" "+req.params.id)
+                 
+              
+                  if(date.date==start && date.application_id!=req.params.id){
+               
+                  
+                    if(date.fullSuite==true){
+                      console.log("WHOLESUITE BOOKED FOR START: "+date.date + bdate.date)
+                      startConflict=true
+                      if(!conflicting_dates.includes(start)){
+                         conflicting_dates.push(start)
+                      }
+
+                    }else{
+                      console.log("\nCHECK ROOMS:"+date.date+"\n")
+                      if((date.roomOne && app.roomOne) || (date.roomTwo && app.roomTwo) || (app.roomThree && date.roomThree)){
+                        startConflict=true
+                        if(!conflicting_dates.includes(start)){
+                           conflicting_dates.push(start)
+                        }
+                      }else  if(!(app.roomOne && date.roomOne) && !(app.roomTwo && date.roomTwo )&& !(app.roomThree && date.roomThree)){
+                        console.log("EXCEPTION")
+                        //console.log(bdate)
+                        //console.log(date)
+
+                      }
+                    }
                   }
-                  if(date.date==end){
-                    endConflict=true
+                  if(date.date==end && date.application_id!=req.params.id){
+                    if(date.fullSuite==true){
+                      console.log("WHOLESUITE BOOKED FOR END:"+date.date +" "+end)
+
+                      endConflict=true
+                      if(!conflicting_dates.includes(end)){
+                         conflicting_dates.push(end)
+                      }
+
+                    }else{
+                      console.log("\nCHECK ROOMS:"+date.date+"\n")
+
+                      if((date.roomOne && app.roomOne) || (date.roomTwo && app.roomTwo) || (app.roomThree && date.roomThree)){
+                        console.log("NOT AVAILABLE")
+                        startConflict=true
+                        if(!conflicting_dates.includes(end)){
+                          conflicting_dates.push(end)
+                       }
+                      }else if(!(app.roomOne && date.roomOne) && !(app.roomTwo && date.roomTwo )&& !(app.roomThree && date.roomThree)){
+                        console.log("EXCEPTION")
+                       // console.log(date)
+                        //console.log(bdate)
+                        //console.log("\n\n")
+                      }
+                    }
+                  
                   }
-                 // console.log(bdate+" "+date)
-                  if(bdate==date){
-                   console.log(bdate+" "+date)
-                    available=false
-                   conflicts.push(date)
+               
+                  if(bdate.date==date.date && date.date!=end && date.date!=start && date.application_id!=req.params.i){
+                    if(date.fullSuite==true){
+                      console.log("WHOLESUITE BOOKED FOR DAY:"+date.date +" "+ bdate.date)
+
+                      available=false
+                      if(!conflicting_dates.includes(date.date)){
+                        conflicting_dates.push(date.date)
+                     }
+
+                    }else{
+                      console.log("\nCHECK ROOMS:"+date.date+"\n")
+
+                      if((date.roomOne && app.roomOne) || (date.roomTwo && app.roomTwo) || (app.roomThree && date.roomThree)){
+                        available=false
+                        if(!conflicting_dates.includes(date.date)){
+                          conflicting_dates.push(date.date)
+                       }
+                      }else  if(!(app.roomOne && date.roomOne) && !(app.roomTwo && date.roomTwo )&& !(app.roomThree && date.roomThree))
+                      {
+                        console.log("EXCEPTION")
+                        console.log(date)
+                        console.log(app[0].roomOne +" "+app[0].roomTwo+" "+app[0].roomThree)
+                      }
+                    }
                     
                 }else {
                  
@@ -561,11 +646,11 @@ router.get("/checkAvailability/:id",async(req,res)=>{
                
               })
               if(startConflict==true){
-                conflicts.push(start)
+                conflicting_dates.push(start)
                
               }
               if(endConflict==true){
-                conflicts.push(end)
+                conflicting_dates.push(end)
               }
               setTimeout(()=>{
                 resolve()
@@ -588,9 +673,9 @@ router.get("/checkAvailability/:id",async(req,res)=>{
         ]})
         console.log(payedApp)
         if(payedApp!=null && conflicting_dates.length==0){
-            res.json({success:true,paid:true,conflicting_dates:conflicts,no_days:conflicting_dates.length})   
+            res.json({success:true,paid:true,conflicting_dates:conflicts,no_days:conflicting_dates.length,application:application})   
         }else{
-           res.json({success:true,paid:false,conflicting_dates:conflicts,no_days:conflicting_dates.length-2})
+           res.json({success:true,paid:false,conflicting_dates:conflicting_dates,no_days:conflicting_dates.length-2})
         }
       }).catch((err)=>{
         console.log(err)
@@ -1339,11 +1424,19 @@ router.post("/approve-booking/:id",async(req,res)=>{
                   console.log(o.date+" "+b.date)
                   console.log(b)
                   console.log(o.application_id+" "+b.application_id)
-                  if(o.date==b.date && o.application_id!=b.application_id){
+                  if(o.date==b.date && o.application_id!=b.application_id ){
+                    if(b.fullsuite==true)
                     console.log("match\n\n")
                     conflicts.push({application_id:b.application_id,date:b.date})
                     
                     index++;
+                  }else{
+                    if((b.roomOne==true && o.roomOne==true) ||  (o.roomTwo==true && b.roomTwo==true) || (o.roomThree==true && b.roomThree==true)){
+                      console.log("match\n\n")
+                      conflicts.push({application_id:b.application_id,date:b.date})
+                      
+                      index++;
+                    }
                   }
                 })
               })
