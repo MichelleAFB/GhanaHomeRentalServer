@@ -2888,6 +2888,7 @@ router.get("/blocked-booked-dates",async(req,res)=>{
  const all_dates=[]
   const strings=[]
   const apps=await Application.find({$and:[{"application_status":"CONFIRMED"},{"fullSuite":false}]})
+  console.log(apps)
   if(apps.length>0){
     apps.map( async(a)=>{
         const booked=await BookedDate.find({$and:[{"application_id":a._id}]})
