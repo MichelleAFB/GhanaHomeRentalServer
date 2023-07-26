@@ -448,11 +448,15 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
       console.log(application)
       console.log(application)
       console.log("\n\n\n")
+      try{
       if(application.acknowledged==true){
         res.json({success:true,no_applications:application.matchedCount,application:updatedApp})
       }else{
         res.json({success:false,no_applications:0})
       }
+    }catch(err){
+      console.log(err)
+    }
     }catch(err){
       res.json({success:false,message:error})
     }
@@ -478,10 +482,14 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
         )
         const updatedApp=await Application.find({$and:[{"_id":req.params.id}]})
         console.log(application)
-        res.json({success:true,no_applications:application.matchedCount,application:updatedApp})
+       // res.json({success:true,no_applications:application.matchedCount,application:updatedApp})
 
         if(application.acknowledged==true){
+          try{
           res.json({success:true,no_applications:application.matchedCount,application:updatedApp})
+          }catch(err){
+            console.log(err)
+          }
         }else{
           res.json({success:false,no_applications:0})
         }
@@ -498,11 +506,15 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
         "notify_applicant_message":req.body.message
       }}
     )
+    try{
     if(application.acknowledged==true){
       res.json({success:true,no_applications:application.matchedCount})
     }else{
       res.json({success:false,no_applications:0})
     }
+  }catch(err){
+    console.log(err)
+  }
   }
   }
 
@@ -536,7 +548,7 @@ router.get("/checkAvailability/:id",async(req,res)=>{
     const conflicts=[]
     var dates
     const prom= new Promise((resolve,reject)=>{
-      axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
+      axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
         try{
            console.log(response.data)
             const booked_dates=response.data.booked_dates
@@ -878,7 +890,8 @@ router.get("/checkAvailability/:id",async(req,res)=>{
 */
 
 router.post("/checkBlockedDates",async(req,res)=>{
-  console.log(req)
+  console.log("here checkBlock")
+  console.log(req.body)
   const conflict=[]
   var conflicted=false
   console.log("CHECK")
@@ -1385,7 +1398,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin","*")
   console.log(req.params)
 
-  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/checkAvailability/"+req.params.id).then(async(response)=>{
+  axios.get("http://localhost:3012/admin-applications/checkAvailability/"+req.params.id).then(async(response)=>{
     console.log(req.params)
 
    
@@ -1512,7 +1525,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
         }else{
           var indLength=0
                 var alreadyBooked=0
-          axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
+          axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
             console.log(response.data)
             if(response.data.success){
               console.log(response.data)
@@ -1520,8 +1533,9 @@ router.post("/approve-booking/:id",async(req,res)=>{
               console.log("\n\nour date")
               console.log(our_dates)
               var index=0
-                axios.post("https://ghanahomestayserver.onrender.com/admin-applications/checkBlockedDates",{dates:response.data.booked_dates,startBuffer:response.data.startBuffer,endBuffer:response.data.endBuffer}).then((response2)=>{
+                axios.post("http://localhost:3012/admin-applications/checkBlockedDates",{dates:response.data.booked_dates,startBuffer:response.data.startBuffer,endBuffer:response.data.endBuffer}).then((response2)=>{
                   console.log(response2.data)
+                  console.log("HEREE")
                   if(response2.data.blocked==true || response2.data.blocked_dates.length>0){
                     console.log(response2.data)
                     console.log("ggre")
@@ -1648,6 +1662,8 @@ router.post("/approve-booking/:id",async(req,res)=>{
 
 
     
+    }else{
+      res.json({success:true,approved:false,conflicting_dates:response.data.conflicting_dates,response:response.data})
     }
   }
   })
