@@ -110,16 +110,16 @@ console.log(add.child.hasOwnProperty("length"))
 router.post("/",async(req,res)=>{
 
   
-  console.logasync(req.body)
+  console.log(req.body)
   const application =req.body
   const children=req.body.children
   const adults=req.body.adults
-  console.logasync(req.body.adults.length)
+  console.log(req.body.adults.length)
   const st=req.body.startDate.split(" ")
   const ed=req.body.endDate.split(" ")
   const startDate=st[0]+" "+st[1]+" "+st[2]+" "+st[3]
   const endDate=ed[0]+" "+ed[1]+" "+ed[2]+" "+ed[3]
-  console.logasync(req.body)
+  console.log(req.body)
   var applicant
  
   if(adults.length>0){
@@ -261,7 +261,7 @@ router.post("/create-application",async(req,res)=>{
   console.log(adults)
 
 
- //console.logasync(req.body)
+ 
  console.log(adults)
   const applicant={firstname:req.body.firstname,middlename:req.body.middlename,lastname:req.body.lastname,email:req.body.email}
  
@@ -704,7 +704,7 @@ router.get("/application/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   console.log("getting application"+ "\n\n")
-  console.logasync(req.params.id)
+  console.log(req.params.id)
   const app=await Application.find({$and:[{"_id":req.params.id}]})
   const occupants=await ApplicationOccupant.find({$and:[{"application_id":req.params.id}]})
   if(app!=null && occupants!=null){
@@ -1344,7 +1344,7 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
 })
 
 router.get("/application/:id",async(req,res)=>{
-  console.logasync(req.params.id)
+  console.log(req.params.id)
   var app=await Application.find({$and:[{"id":req.params.id}]})
   console.log(app)
   var appUpdated=await Application.find({$and:[{"id":req.params.id}]})

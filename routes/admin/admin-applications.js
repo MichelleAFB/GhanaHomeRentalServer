@@ -548,7 +548,7 @@ router.get("/checkAvailability/:id",async(req,res)=>{
     const conflicts=[]
     var dates
     const prom= new Promise((resolve,reject)=>{
-      axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
+      axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
         try{
            console.log(response.data)
             const booked_dates=response.data.booked_dates
@@ -1398,7 +1398,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin","*")
   console.log(req.params)
 
-  axios.get("http://localhost:3012/admin-applications/checkAvailability/"+req.params.id).then(async(response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/checkAvailability/"+req.params.id).then(async(response)=>{
     console.log(req.params)
 
    
@@ -1525,7 +1525,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
         }else{
           var indLength=0
                 var alreadyBooked=0
-          axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
+          axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
             console.log(response.data)
             if(response.data.success){
               console.log(response.data)
@@ -1533,7 +1533,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
               console.log("\n\nour date")
               console.log(our_dates)
               var index=0
-                axios.post("http://localhost:3012/admin-applications/checkBlockedDates",{dates:response.data.booked_dates,startBuffer:response.data.startBuffer,endBuffer:response.data.endBuffer}).then((response2)=>{
+                axios.post("https://ghanahomestayserver.onrender.com/admin-applications/checkBlockedDates",{dates:response.data.booked_dates,startBuffer:response.data.startBuffer,endBuffer:response.data.endBuffer}).then((response2)=>{
                   console.log(response2.data)
                   console.log("HEREE")
                   if(response2.data.blocked==true || response2.data.blocked_dates.length>0){
