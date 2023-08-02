@@ -14,7 +14,8 @@ const {Application}=require("../../models/Application");
 const { ApplicationGuest } = require("../../models/ApplicationGuests");
 const { ApplicationRestrictedIndividual } = require("../../models/ApplicationRestrictedIndividuals");
 const { ApplicationReviewImage } = require("../../models/ApplicationReviewImages");
-const {Maintenance} =require("../../models/Maintenance")
+const {Maintenance} =require("../../models/Maintenance");
+const { ApplicationOccupant } = require("../../models/ApplicationOccupant");
 const connectdb = async () => {
   try {
     console.log("hello");
@@ -243,10 +244,26 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
   */
 })
 /*********************************************GUESTS & RESTRICTED INDIVIDUALS */
+/*
+router.get("/guests/:id",async(req,res)=>{
+  res.setHeader("Access-Control-Allow-Origin", "*");
+
+  const id=req.params.id
+  
+  const guests=req.body.guests
+  const guest=await ApplicationGuest.find({$and:[{"application_id":id},{"occupant_id":occupant_id}]})
+  if(guest!=null){
+    res.json({success:true,guests:guest})
+
+  }else{
+    res.json({success:false,message:"no occupants with id "+occupant_id})
+  }
+})
+*/
 
 router.get("/guests/:id/:occupant_id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
-
+  const occupants=await ApplicationOccupant.find({$and:[{"application_id":req.params.id}]})
   const id=req.params.id
   const occupant_id=req.params.occupant_id
   const guests=req.body.guests

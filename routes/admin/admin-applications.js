@@ -92,9 +92,13 @@ router.get("/body",(req,res)=>{
 
 
 router.get("/", async(req, res) => {
+  try{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   res.json("Welcome to home stay ghana server : ADMIN APPLICATIONS");
+  }catch(err){
+    console.log(err)
+  }
 });
 
 router.get("/application/:id",async(req,res)=>{  
@@ -2418,6 +2422,64 @@ function calcTime(time,city, offset) {
   var nd = new Date(utc + (3600000*offset));
   return nd
 }
+
+router.get("/rooms-Available/:startDate/:endDate",async(req,res)=>{
+  const start=req.params.startDate
+  const end=req.params.endDate
+  const booked=await BookedDate.find({})
+ // var s=new Date(start)
+  var e=new Date(end)
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  var cDate=new Date()
+
+ /* var n=new Date()
+  var nextnext=n.setDate(n.getDate()-1)
+*/
+
+
+
+  if(booked.length>0){
+    const process=[]
+    booked.map(async(b)=>{
+    
+      if(!process.includes(b.date)){
+        process.push(b.date)
+        const days=await BookedDate.find({$and:[{"application_id":b.application_id}]})
+        var st=days[0].date.split(" ")
+        var en=days[days.length-1].date.split(" ")
+        en=new Date(en[3],monthnum[months.indexOf(en[1])-1],en[2])
+        var next =new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+
+        var sta=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+        var s=new Date(start)
+        console.log(b.fullSuite)
+        if(s>=next ){
+      while((next<=en &&s<=en)){
+       
+        if(b.fullSuite==false){
+          console.log("s:"+s)
+        console.log("next:"+next+"\n\n")
+        console.log(b.roomOne+"b.roomTwo:"+b.roomThree+" roomThree:"+b.roomThree)
+      
+        console.log(s)
+        }
+        next=new Date(next.setDate(next.getDate()+1))
+        s=new Date(s.setDate(s.getDate()+1))
+
+
+      }
+    }
+    }
+  })
+
+  }else{
+    res.json({success:true,available:true})
+  }
+})
+
+
 router.get("/find-dates",(req,res)=>{
   var oldDates=[]
   var arr=[]
@@ -2493,7 +2555,7 @@ arr=d
 
       }else{ 
      
-     
+     console.log("dates length:"+dates.length)
        
        
       
@@ -2609,7 +2671,7 @@ arr=d
       
      },20)
       
-    },250)
+    },200)
 
   
 
@@ -2626,8 +2688,11 @@ arr=d
 
 router.get("/format-find-dates",(req,res)=>{
   var start=new Date()
+  console.log("find-format")
   axios.get("https://ghanahomestayserver.onrender.com/admin-applications/find-dates").then((response)=>{
     if(response.data.success){
+      //console.log(response.data)
+      console.log("COMPLETE")
       const dates=response.data.allDates
      
     

@@ -12,7 +12,9 @@ const mongoose=require("mongoose")
 const uniqueValidator = require('mongoose-unique-validator')
 const {db_config}=require("../../config/db")
 const {Application}=require("../../models/Application")
-const {Maintenance}=require("../../models/Maintenance")
+const {Maintenance}=require("../../models/Maintenance");
+const { ApplicationOccupant } = require("../../models/ApplicationOccupant");
+const { ApplicationGuest } = require("../../models/ApplicationGuests");
 
 const connectdb = async () => {
   try {
@@ -84,6 +86,27 @@ router.get("/", async(req, res) => {
 
   res.json("Welcome to home stay ghana server : ADMIN APPLICATIONS");
 });
+
+router.get("/guests/:id/",async(req,res)=>{
+  res.setHeader("Access-Control-Allow-Origin", "*");
+
+  const occupants=await ApplicationOccupant.find({$and:[{"application_id":req.params.id}]})
+  const guests=[]
+  occupant_id.map(async(o)=>{
+    const g=await ApplicationGuest.find({$and:[{"occupant_id":o._id}]})
+    guests.push({occupant:o,guests:g})
+  })
+  const id=req.params.id
+  const occupant_id=req.params.occupant_id
+  //const guests=req.body.guests
+  //const guest=await ApplicationGuest.find({$and:[{"application_id":id},{"occupant_id":occupant_id}]})
+  if(guest!=null){
+    res.json({success:true,guests:guest})
+
+  }else{
+    res.json({success:false,message:"no occupants with id "+occupant_id})
+  }
+})
 
 router.get("/getActiveStatus/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
