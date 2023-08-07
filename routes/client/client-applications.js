@@ -270,6 +270,7 @@ router.post("/create-application",async(req,res)=>{
 
 
     //const applicant=adults[0]
+    console.log("HEEELLLLLOOOO"+applicant.email)
     console.log("applicant")
     console.log(applicant)
     const use= await User.find({
@@ -277,6 +278,9 @@ router.post("/create-application",async(req,res)=>{
        {"email":applicant.email}
      ]
     })
+    console.log(use)
+    console.log("user")
+    console.log(use)
     var user={firstname:req.body.firstname,middlename:req.body.middleName,lastname:req.body.lastname,email:req.body.email}
    
 
@@ -291,6 +295,7 @@ router.post("/create-application",async(req,res)=>{
         var aLength=0
         var cLength=0
         console.log(children==null)
+        try{
      if(adults.length>0){
        aLength=adults.length
        console.log("lerngth true")
@@ -301,6 +306,7 @@ router.post("/create-application",async(req,res)=>{
         cLength=children.length
       }
     }
+  
     var start=req.body.startDate.toString()
     var end=req.body.endDate.toString()
     const application=new Application({
@@ -369,6 +375,9 @@ router.post("/create-application",async(req,res)=>{
        childSaved=await child.save()
       })
     }
+  }catch(err){
+    console.log(err )
+  }
   setTimeout(()=>{
    res.json({success:true,application:application})
   },800)
@@ -551,6 +560,78 @@ router.get("/getNoDays/:id",async(req,res)=>{
 })
 
   
+router.post("/update-application/:id/:variable/",async(req,res)=>{
+  const variable=req.params.variable
+  const value=req.body.value
+
+  const id=req.params.id
+
+  var app=await Application.find({$and:[{"id":id}]})
+  app=app[0]
+  console.log(app)
+  console.log("\n"+value)
+  if(app!=null){
+    
+    var name=Object.keys({variable})[0]
+    if(variable=="roomOne"){
+      const update=await Application.updateOne({"_id":id},{
+        $set:{"roomOne":value}
+      })
+
+    }
+    if(variable=="roomTwo"){
+    const update=await Application.updateOne({"_id":id},{
+      $set:{"roomTwo":value}
+    })
+  }
+    if(variable=="roomThree"){
+      const update=await Application.updateOne({"_id":id},{
+        $set:{"roomThree":value}
+      })
+    res.json({success:true,updated:update})
+  }
+  if(variable=="fullSuite"){
+    if(value==true){
+    const update=await Application.updateOne({"_id":id},{
+      $set:[{"fullSuite":value},{"roomOne":false},{"roomTwo":false},{"roomThree":false}]
+    })
+  res.json({success:true,updated:update})
+    }else{
+      const roomOne=req.body.roomOne
+      const roomtwo=req.body.roomTwo
+      const roomThree=req.body.roomThree
+      const update=await Application.updateOne({"_id":id},{
+        $set:[{"fullSuite":value},{"roomOne":roomOne},{"roomTwo":roomTwo},{"roomThree":roomThree}]
+      })
+    res.json({success:true,updated:update})
+
+    }
+  }
+  if(variable=="email"){
+    const update=await Application.updateOne({"_id":id},{
+      $set:{"email":value}
+    })
+  res.json({success:true,updated:update})
+}
+if(variable=="stay_start_date"){
+  const update=await Application.updateOne({"_id":id},{
+    $set:{"stay_start_date":value}
+  })
+res.json({success:true,updated:update})
+}
+if(variable=="stay_end_date"){
+  const update=await Application.updateOne({"_id":id},{
+    $set:{"stay_end_date":value}
+  })
+res.json({success:true,updated:update})
+}
+
+  }else{
+    res.json({success:false,message:" app "+ id+ "does not exist"})
+  }
+
+})
+
 
 
     //retrieve applicant info
