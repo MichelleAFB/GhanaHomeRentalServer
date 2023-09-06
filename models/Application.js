@@ -154,7 +154,28 @@ const applicationSchema=new mongoose.Schema({
   fullSuite:{
     type:Boolean,
     default:true
+  },
+  roommate:{
+    type:Boolean,
+    default:false
+  },
+  roommate1:{
+    type:Boolean,
+    default:false
+
+
+  },
+  roommate2:{
+    type:Boolean,
+    default:false
+
+    
+  },
+  roommate_group:{
+    type:Array
+    
   }
+
 
 })
 

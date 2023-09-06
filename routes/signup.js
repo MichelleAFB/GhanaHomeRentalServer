@@ -12,17 +12,18 @@ const {User}=require("../models/User")
 const mongoose=require("mongoose")
 
 
-
 const connectdb = async () => {
   try {
-    const conn = await mongoose.connect(
+   const conn = await mongoose.connect(
       "mongodb+srv://MAB190011:Mirchoella22@atlascluster.xdodz.mongodb.net/ghanahomestay?retryWrites=true&w=majority",
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,
       }
     );
+    
     return conn
+    
     console.log(`MONGO DB connected: ${conn.connection.host}`);
   } catch (err) {
     
@@ -32,7 +33,7 @@ var dbmongo
 connectdb().then((conn)=>{
   //console.log(conn)
   try{
-  dbmongo=conn.connection
+ // dbmongo=conn.connection
   }catch(err){
     console.log(err)
   }
@@ -141,6 +142,7 @@ router.post("/create-user",(req,res)=>{
   })
 
 })
+
 
 
 module.exports=router

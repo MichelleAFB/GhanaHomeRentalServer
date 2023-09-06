@@ -15,7 +15,8 @@ const { User } = require("../../models/User");
 const {Application}=require("../../models/Application")
 const {ApplicationOccupant}=require("../../models/ApplicationOccupant");
 const{ ApplicationReviewImage }=require( "../../models/ApplicationReviewImages");
-const{ApplicationGuest}=require("../../models/ApplicationGuests")
+const{ApplicationGuest}=require("../../models/ApplicationGuests");
+const { BookedDate } = require("../../models/BookedDates");
 
 
 const connectdb = async () => {
@@ -247,6 +248,13 @@ router.post("/",async(req,res)=>{
   })
 
 })
+
+router.get("/fix-booked",async(req,res)=>{
+  const update=await Application.updateOne({"_id":"64da6f37b494001dbf940c7e"},{
+    $set:{"roommate2":true}
+  })
+  res.json({update})
+})
 router.post("/create-application",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
   console.log(req.body)
@@ -270,9 +278,7 @@ router.post("/create-application",async(req,res)=>{
 
 
     //const applicant=adults[0]
-    console.log("HEEELLLLLOOOO"+applicant.email)
-    console.log("applicant")
-    console.log(applicant)
+    
     const use= await User.find({
      $and:[
        {"email":applicant.email}
@@ -282,7 +288,7 @@ router.post("/create-application",async(req,res)=>{
     console.log("user")
     console.log(use)
     var user={firstname:req.body.firstname,middlename:req.body.middleName,lastname:req.body.lastname,email:req.body.email}
-   
+   console.log(req.body)
 
     console.log("\n\n\n\n user")
     console.log(user)
@@ -296,7 +302,7 @@ router.post("/create-application",async(req,res)=>{
         var cLength=0
         console.log(children==null)
         try{
-     if(adults.length>0){
+     if(adults!=null){
        aLength=adults.length
        console.log("lerngth true")
 
@@ -385,6 +391,7 @@ router.post("/create-application",async(req,res)=>{
     res.json({success:false,message:"no account found"})
   }
   })
+  
 })
 
 router.get("/getRoomAvailability",(req,res)=>{
@@ -1748,6 +1755,132 @@ router.get("/get-all-reviews",async(req,res)=>{
 
       },200)
     },500)
+
+    router.get("/booked",async(req,res)=>{
+      const booked=await BookedDate.find({})
+      res.json(booked)
+    })
+
+    router.get("/booked-dates",async(req,res)=>{
+      const booked=await BookedDate.find({})
+      res.json(booked)
+    })
+    router.post("/update-application/:id/:variable/",async(req,res)=>{
+      const variable=req.params.variable
+      const value=req.body.value
+    
+      const id=req.params.id
+    
+      var app=await Application.find({$and:[{"id":id}]})
+      app=app[0]
+      console.log(app)
+      console.log("\n"+value)
+      if(app!=null){
+        
+        var name=Object.keys({variable})[0]
+        if(variable=="roomOne"){
+          if(value==true){
+          const update=await Application.updateOne({"_id":id},{
+            $set:[{"roomOne":value},{"fullSuite":false}]
+          },
+          {
+            $set:{"fullSuite":false}
+          })
+          res.json({success:true,updated:update})
+    
+        }else{
+          console.log("ROOMONE")
+          const update=await Application.updateOne({"_id":id},{
+            $set:{"roomOne":false}
+          })
+          const app=await Application.find({$and:[{"_id":id}]})
+          res.json({success:true,updated:update,app:app})
+    
+    
+        }
+    
+        }
+        if(variable=="roomTwo"){
+          if(value==true){
+        const update=await Application.updateOne({"_id":id},{
+          $set:{"roomTwo":value}
+        },{
+          $set:{"fullSuite":false}
+        })
+        const app=await Application.find({$and:[{"_id":id}]})
+        res.json({success:true,updated:update,app:app})
+    
+      }else{
+        const update=await Application.updateOne({"_id":id},{
+          $set:{"roomTwo":value}
+        })
+        const app=await Application.find({$and:[{"_id":id}]})
+        res.json({success:true,updated:update,app:app})
+      }
+      }
+        if(variable=="roomThree"){
+          if(value==true){
+          const update=await Application.updateOne({"_id":id},{
+            $set:[{"roomThree":value},{"fullSuite":false}]
+          },
+          {
+            $set:{"fullSuite":false}
+          })
+          const app=await Application.find({$and:[{"_id":id}]})
+          res.json({success:true,updated:update,app:app})
+          }else{
+            const update=await Application.updateOne({"_id":id},{
+              $set:{"roomThree":value}
+            })
+            const app=await Application.find({$and:[{"_id":id}]})
+            res.json({success:true,updated:update,app:app})
+    
+          }
+      }
+      if(variable=="fullSuite"){
+        if(value==true){
+        const update=await Application.updateOne({"_id":id},{
+          $set:[{"fullSuite":value},{"roomOne":false},{"roomTwo":false},{"roomThree":false}]
+        })
+        const app=await Application.find({$and:[{"_id":id}]})
+            res.json({success:true,updated:update,app:app})
+        }else{
+          const roomOne=req.body.roomOne
+          const roomTwo=req.body.roomTwo
+          const roomThree=req.body.roomThree
+          const update=await Application.updateOne({"_id":id},{
+            $set:{"fullSuite":value,"roomOne":roomOne,"roomTwo":roomTwo,"roomThree":roomThree}
+      
+        })
+        const app=await Application.find({$and:[{"_id":id}]})
+        res.json({success:true,updated:update,app:app})
+    
+        }
+      }
+      if(variable=="email"){
+        const update=await Application.updateOne({"_id":id},{
+          $set:{"email":value}
+        })
+      res.json({success:true,updated:update})
+    }
+    if(variable=="stay_start_date"){
+      const update=await Application.updateOne({"_id":id},{
+        $set:{"stay_start_date":value}
+      })
+    res.json({success:true,updated:update})
+    }
+    if(variable=="stay_end_date"){
+      const update=await Application.updateOne({"_id":id},{
+        $set:{"stay_end_date":value}
+      })
+    res.json({success:true,updated:update})
+    }
+    
+      }else{
+        res.json({success:false,message:" app "+ id+ "does not exist"})
+      }
+    
+    })
   
     /*db.query("select * from ghanahomestay.application_review_images",(err,results)=>{
       if(err){

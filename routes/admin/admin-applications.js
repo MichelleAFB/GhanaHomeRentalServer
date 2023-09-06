@@ -14,7 +14,10 @@ const uniqueValidator = require('mongoose-unique-validator')
 const {Application} =require("../../models/Application");
 const { ApplicationOccupant } = require("../../models/ApplicationOccupant");
 const {BookedDate}=require('../../models/BookedDates')
-const{BlockedDate}=require("../../models/BlockedDates")
+const{BlockedDate}=require("../../models/BlockedDates");
+const e = require("express");
+const { ApplicationRoommate } = require("../../models/ApplicationRoommates");
+
 
 router.use(bodyParser.json());
 router.use(express.json())
@@ -84,8 +87,58 @@ function handleDisconnect() {
 }
 
 //handleDisconnect();
+router.get("/rooms-diagram",async(req,res)=>{
+  const approved=await Application.find({$and:[{"approved":1},{"application_status":"CONFIRMED"}]})
+  const already=[]
+
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
 
 
+  const rooms=[]
+      
+  approved.map((a)=>{
+    if(!already.includes(a._id)){
+      already.push(a._id)
+    approved.map((other)=>{
+
+      var astart=a.stay_start_date
+      astart=astart.split(" ")
+      var aend=a.stay_end_date
+      aend=aend.split(" ")
+      var otherStart=other.stay_start_date
+      otherStart=otherStart.split(" ")
+      var otherEnd=other.stay_end_date
+      otherEnd=otherEnd.split(" ")
+
+      astart=new Date(astart[3],monthnum[months.indexOf(astart[1])-1],astart[2])
+      aend=new Date(aend[3],monthnum[months.indexOf(aend[1])-1],aend[2])
+      otherStart=new Date(otherStart[3],monthnum[months.indexOf(otherStart[1])-1],otherStart[2])
+      otherEnd=new Date(otherEnd[3],monthnum[months.indexOf(otherEnd[1])-1],otherEnd[2])
+      if( other._id!=a._id && (astart>=otherStart && astart>=otherEnd) || (otherStart>=astart && otherStart<=aend)){
+        console.log(other._id)
+        console.log(a._id)
+        console.log(astart)
+        console.log(aend)
+        console.log(otherStart)
+        console.log(otherEnd)
+        if(!approved.includes(other._id)){
+          rooms.push(other)
+
+        }
+        console.log("\n\n\n")
+
+
+      }
+    })
+  }
+})
+
+setTimeout(()=>{
+  res.json({success:true,rooms:rooms})
+},500)
+})
 router.get("/body",(req,res)=>{
   console.log(req.body)
 })
@@ -2604,6 +2657,9 @@ router.get("/checkPaymentDeadline/:id",async(req,res)=>{
 const arr2=[]
 
 
+
+
+
 function calcTime(time,city, offset) {
   var d = time;
   var utc = d.getTime() - (d.getTimezoneOffset() * 60000);
@@ -2873,6 +2929,799 @@ arr=d
   console.log(err)
 }
 })
+
+
+router.get("/set-roommate/:id/:roommate",async(req,res)=>{
+
+  const id=req.params.id
+  const roommate=req.params.roommate
+  console.log(req.params)
+  try{
+  var app=await Application.find({$and:[{"_id":id}]})
+  app=app[0]
+  var otherApp=await Application.find({$and:[{"_id":roommate}]})
+  otherApp=otherApp[0]
+  if(otherApp!=null && otherApp!=null){
+    if(app.roommate1==null){
+    const update=await Application.updateOne({"_id":id},{
+      $set:{"roommate1":roommate}
+    })
+  }else if(app.roommate2==null){
+    const update=await Application.updateOne({"_id":id},{
+      $set:{"roommate2":roommate}
+    })
+
+  }
+
+  if(otherApp.roommate1==null){
+    const update=await Application.updateOne({"_id":roommate},{
+      $set:{"roommate1":id}
+    })
+  }else if(otherApp.roommate2==null){
+    const update=await Application.updateOne({"_id":roommate},{
+      $set:{"roommate2":id}
+    })
+  }
+  }
+}catch(err){
+  console.log(err)
+}
+  setTimeout(async()=>{
+    const app=await Application.find({$and:[{"_id":id}]})
+    res.json({success:true,app:app})
+  })
+})
+router.get("/roommate-diagram",async(req,res)=>{
+  const arr=[]
+  const apps=await ApplicationRoommate.find({})
+  //console.log(apps)
+  const already=[]
+  const rooms=[]
+  if(apps.length>0){
+    //console.log(a.)
+
+    apps.map((a)=>{
+      console.log(a )
+
+      if(a.roommates!=null){
+      try{
+      const add={
+        startDate:a.startDate,
+        endDate:a.endDate,
+        roommate:a.roommates[0],
+        roommate1: a.roommates[1]
+        ,roommate2:a.roommates[2]}
+        console.log(add)
+      rooms.push(add)
+      console.log(rooms)
+      }catch(err){
+        console.log(err)
+      }}
+
+    })
+    /*
+  apps.map(async(a)=>{
+    
+    var app=await Application.find({$and:[{"roommate1":a._id}]})
+    app=app[0]
+    var app2=await Application.find({$and:[{"roommate2":a._id}]})
+    app2=app2[0]
+    const appEmpty=app==null? true:false
+    const app2Empty=app2==null? true:false
+    if(!already.includes(a._id)){
+     if(app!=null) 
+     {
+      already.push(app._id);
+     }
+     if(a!=null){
+      already.push(a._id);
+     }
+     if(app2!=null){
+      already.push(app2._id)
+     }
+      rooms.push({roommate:a,roommate1:app,roomTwo:app2})
+
+    }
+  })
+  */
+}
+  setTimeout(()=>{
+    res.json({success:true,rooms:rooms})
+  },500)
+})
+
+router.get("/fix-roommates",async(req,res)=>{
+  const booked=await BookedDate.find({$and:[{"fullSuite":false}]})
+  const arr=[]
+  const dates=[]
+  if(booked.length>0){
+    booked.map(async(b)=>{
+
+      if(!arr.includes(b.date)){
+        const apps=[]
+       
+        arr.push(b.date)
+        const book=await BookedDate.find({$and:[{"date":b.date}]})
+        
+        book.map(async(a)=>{
+          const appp=await Application.find({$and:[{"_id":a.application_id}]})
+         if(appp[0]!=null){
+          apps.push(appp[0])
+         }
+        })
+
+        setTimeout(()=>{
+          
+            dates.push({date:b.date,applications:apps})
+          
+        },20)
+       
+      }
+    })
+  }
+  setTimeout(()=>{
+    res.json({dates:dates})
+  },1500)
+})
+
+router.get("/roommates-fix",(req,res)=>{
+  var min
+  var max
+  const allDates=[]
+
+  axios.get("http://localhost:3012/admin-applications/fix-roommates").then((response)=>{
+   // console.log(response.data)
+    const dates=response.data.dates
+    var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+    "Aug","Sep","Oct","Nov","Dec"];
+    var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+    dates.map((d)=>{
+      if(d.applications!=null){
+       
+      min = d.applications.reduce(function (a, b) {
+      
+        try{
+        if(a.stay_start_date!=null && b.stay_start_date!=null){
+       
+        var first=a.stay_start_date.split(" ")
+        var second=b.stay_start_date.split(" ")
+        first=new Date(first[3],monthnum[months.indexOf(first[1])-1],first[2])
+        second=new Date(second[3],monthnum[months.indexOf(second[1])-1],second[2])
+        return first < second ? first: second; 
+        }else if(a.stay_start_date!=null ){
+          var first=a.stay_start_date.split(" ")
+          first=new Date(first[3],monthnum[months.indexOf(first[1])-1],first[2])
+
+
+       
+      return first
+      
+        }else{
+    
+            return a;
+          
+        }
+      }catch(err){
+        return min
+      }
+      }); 
+
+      max = d.applications.reduce(function (a, b) {
+      
+        try{
+        if(a.stay_end_date!=null && b.stay_end_date!=null){
+       
+        var first=a.stay_end_date.split(" ")
+        var second=b.stay_end_date.split(" ")
+        first=new Date(first[3],monthnum[months.indexOf(first[1])-1],first[2])
+        second=new Date(second[3],monthnum[months.indexOf(second[1])-1],second[2])
+        return first > second ? first: second; 
+        }else if(a.stay_end_date){
+          var first=a.stay_end_date.split(" ")
+
+          first=new Date(first[3],monthnum[months.indexOf(first[1])-1],first[2])
+       
+       return first
+      
+        }else{
+          return a
+        }
+      }catch(err){
+        return max
+      }
+      }); 
+  
+        
+     
+        setTimeout(()=>{
+          allDates.push({min:min,max:max,applications:d.applications})
+
+        },200)
+    }
+
+    })
+  
+  })
+  setTimeout(()=>{
+    res.json({success:true,length:allDates.length,dates:allDates})
+  },3000)
+})
+
+router.get("/roommates",(req,res)=>{
+ 
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+
+  axios.get("http://localhost:3012/admin-applications/fix-roommates").then((response)=>{
+    const dates=response.data.dates
+    //console.log(dates)
+  const allDates=[]
+    dates.map((d)=>{
+      var min
+      var max
+      var newmin
+      var newmax
+      if(d.applications[0]!=null){
+    
+      /*const app=d.applications[0]
+      var start=app.stay_start_date.split(" ")
+      var min=new Date(start[3],monthnum[months.indexOf(start[1])-1],start[2])
+      var end=app.stay_end_date.split(" ")
+
+      var max=new Date(end[3],monthnum[months.indexOf(end[1])-1],end[2])
+      */
+      const arr=[]
+      const dateArr=[]
+      if(!arr.includes(d.date)){
+        arr.push(d.date)
+
+      d.applications.map((a)=>{
+        //console.log(dateArr)
+        if(a!=null && !dateArr.includes(a.stay_start_date) && !dateArr.includes(a.stay_end_date)){
+          dateArr.push(a.stay_end_date)
+          dateArr.push(a.stay_start_date)
+       var first=a.stay_start_date.split(" ")
+        first=new Date(first[3],monthnum[months.indexOf(first[1])-1],first[2])
+        if(min==null){
+          min=new Date(first)
+          newmin=new Date(first)
+        }else{
+        
+          if(first<min){
+            min=new Date(first)
+            newmin=new Date(first)
+          }
+
+        }
+        //console.log(min.toString().substring(0,15)+ " < "+first.toString().substring(0,15)+":"+(min<first))
+
+        var last=a.stay_end_date.split(" ")
+        last=new Date(last[3],monthnum[months.indexOf(last[1])-1],last[2])
+        if(max==null){
+          max=new Date(last)
+          newmax= new Date(last)
+      
+        }else{
+        
+          if(last>max){
+            max=new Date(last)
+            newmax=new Date(last)
+          }
+
+        }
+        }
+      })
+    }
+ 
+    }
+    setTimeout(()=>{
+     
+      if(newmin<=min || newmax>=max){
+        allDates.push({min:min,max:max,applications:d.applications})
+    
+      }
+    },200)
+    
+    })
+
+    setTimeout(()=>{
+      res.json({success:true,application:allDates})
+    },2000)
+  })
+  
+})
+
+router.get("/set-rooms",(req,res)=>{
+
+})
+
+router.get("/roommates-22",(req,res)=>{
+  console.log("hello")
+
+  axios.get("http://localhost:3012/admin-applications/roommates").then((response)=>{
+
+  //console.log(response.data)
+  const dates=response.data.application
+  const arr=[]
+  var i=0
+
+  dates.map(async(d)=>{
+    const min=new Date(d.min)
+    const max=new Date(d.max)
+
+    console.log(min.toString())
+    console.log(max.toString()+"\n")
+
+/*    if(min.toString().substring(0,15)=="Wed Sep 06 2023" && max.toString().substring(0,15)=='Wed Sep 13 2023' && !arr.includes(max.toString().substring(0,15) && !arr.includes(min.toString().substring(0,15))) && i==0){
+      arr.push(max.toString().substring(0,15))
+      arr.push(min.toString().substring(0,15))
+      console.log(arr)
+
+      const group=new ApplicationRoommate({
+        startDate:min.toString().substring(0,15),
+        endDate:max.toString().substring(0,15),
+        roommates:d.applications
+      })
+
+      const saved=await group.save()
+
+      d.applications.map(async(a)=>{
+        const update=await Application.updateOne({"_id":a._id},{
+          $set:{"roommate_group":[saved._id]}
+        })
+        console.log(update)
+      })
+
+      i++
+
+      
+
+    }
+    */
+
+    /*if(min.toString().substring(0,15)=="Mon Aug 21 2023" && max.toString().substring(0,15)=='Thu Aug 31 2023' && !arr.includes(max.toString().substring(0,15) && !arr.includes(min.toString().substring(0,15))) && i==0){
+      arr.push(max.toString().substring(0,15))
+      arr.push(min.toString().substring(0,15))
+      console.log(arr)
+
+      const group=new ApplicationRoommate({
+        startDate:min.toString().substring(0,15),
+        endDate:max.toString().substring(0,15),
+        roommates:d.applications
+      })
+
+      const saved=await group.save()
+
+      d.applications.map(async(a)=>{
+        const update=await Application.updateOne({"_id":a._id},{
+          $set:{"roommate_group":[saved._id]}
+        })
+        console.log(update)
+      })
+
+      i++
+
+      
+
+    }
+    */
+  
+
+
+  })
+  
+    /*const apps= response.data.application
+    var start= apps[0]!=null? new Date(apps[0].min):null
+    var end= apps[0]!=null? new Date(apps[0].max):null
+    
+    const arr=[]
+    const dates=[]
+    const arr2=[]
+    const ids=[]
+  
+    var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  //start2=new Date(start2[3],monthnum[months.indexOf(start2[1])-1],start2[2])
+
+    apps.map((a)=>{
+      
+      if(!arr.includes(a.min.toString()) && !arr.includes(a.max.toString())){
+        arr.push(a.min.toString())
+        arr.push(a.max.toString())
+     var min=new Date(a.min)
+     var max=new Date(a.max)
+    // console.log(start)
+    // console.log(end)
+    ids.push(a.applications[0]._id)
+    if(a.applications[1]!=null){
+      ids.push(a.applications[1]._id)
+    }
+    if(a.applications[2]!=null){
+      ids.push(a.applications[2]._id)
+    }
+        a.applications.map((b)=>{
+          
+          if(b!=null){
+          arr2.push(b.stay_start_date)
+          arr2.push(b.stay_end_date)
+        
+          console.log("check date:")
+          console.log(b.stay_start_date)
+          console.log(b.stay_end_date)
+          var start=b.stay_end_date.split(" ")
+          var end=b.stay_end_date.split(" ")
+          start=new Date(start[3],monthnum[months.indexOf(start[1])-1],start[2])
+          end=new Date(end[3],monthnum[months.indexOf(end[1])-1],end[2])
+          var i=0
+
+          a.applications.map((c)=>{
+           arr2.push(c.stay_start_date)
+           arr2.push(c.stay_end_date)
+
+            var start2=c.stay_start_date.split(" ")
+            var end2=c.stay_end_date.split(" ")
+            start2=new Date(start2[3],monthnum[months.indexOf(start2[1])-1],start2[2])
+            end2=new Date(end[3],monthnum[months.indexOf(end[1])-1],end[2])
+            console.log(start.toString().substring(0,15)+" "+start2.toString().substring(0,15)+" "+(start2<start))
+            if(start2<start && start2.toString()!=start.toString()){
+              start=new Date(start2)
+              console.log("newmin:"+start)
+            }
+            if(end2>end && end2.toString()!=end.toString() ){
+              end=new Date(end2) 
+              console.log("newmax:"+end)
+            }
+            i++
+
+            console.log(i)
+            if(i==a.applications.length){
+              var length=a.applications.length
+              var different=true
+              var j=0
+              while(j<length){
+                console.log(j)
+              if(ids.includes(a.applications[j]._id)){
+                different=false
+              }else{
+                
+              }
+              j++
+              }
+              console.log("diff:"+different)
+              setTimeout(()=>{
+                if(min!=null && max!=null){
+                  if(dates.length>0){
+                    const prev=dates[dates.length-1]
+                    var prevmin
+                    var prevmax
+                    if(new Date(prev.min)<min && a.applications!=prev.applications){
+                      min=new Date(prevmin)
+                    }
+                    if(new Date(prev.max)>max && a.applications!=prev.applications){
+                      max=new Date(prevmax)
+                    }
+                    setTimeout(()=>{
+                      if(min!=null && max!=null){
+                      dates.push({min:min,max:max,applications:a.applications})
+                      }
+
+                    },100)
+                  }else{
+                  dates.push({min:min,max:max,applications:a.applications})
+                  }
+
+                }
+              },200)
+              
+
+            }
+          
+         
+          })
+         
+        }
+     })   
+    
+    }else{
+     console.log("ALREADY:"+a.min.toString())
+     
+    }
+ 
+ 
+    })
+    setTimeout(()=>{
+      res.json({success:true,dates_length:dates.length,dates:dates})
+    },600)
+    */
+  })
+})
+
+router.get("/sort-roommates",(req,res)=>{
+  try{
+    const allDates=[]
+
+  axios.get("http://localhost:3012/admin-applications/roommates-22").then((response)=>{
+    //console.log(response.data)
+    const dates=response.data.dates
+    try{
+      var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+      "Aug","Sep","Oct","Nov","Dec"];
+      var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+      var arr=[]
+    dates.map((d)=>{
+      var min
+      var  max
+
+      const apps=d.applications
+      dates.map((a)=>{
+        var i=0
+        if(a.applications!=d.applications && !arr.includes(d.min) && !arr.includes(d.max)){
+          arr.push(d.min)
+          arr.push(d.max)
+          var start=new Date(a.min.split(" ")[0])
+          //start=new Date(start[3],monthnum[months.indexOf(start[1])-1],start[2])
+         // start=start.setDate(start.getDate())
+          var end=new Date(a.max.split(" ")[0])
+          //end=new Date(end[3],monthnum[months.indexOf(end[1])-1],end[2])
+
+          var ourStart=new Date(d.min.split(" ")[0])
+         // ourStart=ourStart[0]
+          //ourStart=new Date(ourStart[3],monthnum[months.indexOf(ourStart[1])-1],ourStart[2])
+          var ourEnd=new Date(d.max.split(" ")[0])
+         // console.log(ourEnd instanceof Date)
+          //ourEnd=new Date(ourEnd[3],monthnum[months.indexOf(ourEnd[1])-1],ourEnd[2])
+
+          if((ourEnd.toString==end.toString()) || (ourStart.toString()==start.toString())){
+            i++;
+            console.log("MATCH")
+            console.log(end+" "+ourEnd)
+            console.log(start+" "+ourStart)
+            
+            if(ourEnd<=end){
+              
+              max=new Date(end)
+              console.log(max)
+              
+            }
+            if(ourStart<=start){
+              min=new Date(ourStart)
+              console.log("min:"+min)
+              
+            }
+            console.log(i)
+            if(min!=null && max!=null){
+              allDates.push({min:min,max:max,applications:d.applications})
+                }
+          }
+      
+        
+        }
+      })
+    
+
+      setTimeout(()=>{
+        console.log("min:"+min) 
+        console.log("max:"+max)
+      
+      },200)
+
+    })
+  }catch(err){
+    console.log(err)
+  }
+  setTimeout(()=>{
+    res.json({dates:allDates})
+  },1000)
+  })
+
+
+}catch(err){
+  console.log(err)
+}
+})
+
+router.get("/roommates-",(req,res)=>{
+  console.log("hello")
+
+  axios.get("http://localhost:3012/admin-applications/roommates").then((response)=>{
+    const apps= response.data.application
+    var start= apps[0]!=null? new Date(apps[0].min):null
+    var end= apps[0]!=null? new Date(apps[0].max):null
+    
+    const arr=[]
+    const dates=[]
+    var i=0
+    apps.map((a)=>{
+      i++
+      if(!arr.includes(a.min.toString()) && !arr.includes(a.max.toString())){
+        arr.push(a.min.toString())
+        arr.push(a.max.toString())
+     var min=new Date(a.min)
+     var max=new Date(a.max)
+    // console.log(start)
+    // console.log(end)
+
+
+    
+
+    if(start!=null && end!=null){
+      var maxString=new Date(a.max)
+      var minString=new Date(a.min)
+      console.log(a.applications[0].stay_end_date + " "+maxString.toString().substring(0,15))
+
+      if(min<start &&((a.applications[0].stay_start_date==minString.toString().substring(0,15)) || (a.applications[0].stay_end_date==maxString.toString().substring(0,15)))){
+
+        
+        if(a.applications[1]!=null){
+          if((a.applications[1].stay_start_date==minString.toString().substring(0,15)) || (a.applications[1].stay_end_date==maxString.toString().substring(0,15))){
+
+            if(a.applications[2]!=null ){
+              if((a.applications[2].stay_start_date==minString.toString().substring(0,15)) || (a.applications[2].stay_end_date==maxString.toString().substring(0,15))){
+                start=new Date(min)
+                console.log("newmin:"+min)
+              }
+            }else{
+              start=new Date(min)
+              console.log("newmin:"+start)
+            }
+          }
+        }else{
+          start=new Date(min)
+          console.log("newmin:"+start)
+
+        }
+
+      }
+
+    }
+
+    
+    if(start!=null && end!=null){
+      var maxString=new Date(a.max)
+      var minString=new Date(a.min)
+      console.log(a.applications[0].stay_end_date + " "+maxString.toString().substring(0,15))
+
+      if(max>end &&((a.applications[0].stay_start_date==minString.toString().substring(0,15)) || (a.applications[0].stay_end_date==maxString.toString().substring(0,15)))){
+
+        
+        if(a.applications[1]!=null){
+          if((a.applications[1].stay_start_date==minString.toString().substring(0,15)) || (a.applications[1].stay_end_date==maxString.toString().substring(0,15))){
+
+            if(a.applications[2]!=null ){
+              if((a.applications[2].stay_start_date==minString.toString().substring(0,15)) || (a.applications[2].stay_end_date==maxString.toString().substring(0,15))){
+                end=new Date(max)
+                console.log("newmax:"+max)
+              }
+            }else{
+              end=new Date(max)
+              console.log("newmax:"+end)
+            }
+          }
+        }else{
+          end=new Date(max)
+          console.log("newmax:"+end)
+
+        }
+
+      }
+
+    }
+
+    
+    
+       
+       
+   
+     dates.push({min:start,max:end,applications:a.applications})
+    
+    }else{
+     console.log("ALREADY:"+a.min.toString())
+     
+    }
+ 
+ 
+    })
+    setTimeout(()=>{
+      res.json({success:true,dates:dates})
+    },600)
+  })
+})
+
+router.get("/delete-groups",async(req,res)=>{
+  const deleted=await ApplicationRoommate.deleteMany({})
+  res.json(deleted)
+})
+router.get("/set-roommates-group",(async(req,res)=>{
+  axios.get("http://localhost:3012/admin-applications/set-roommates").then((response)=>{
+
+  const dates=response.data.dates
+  const groups=[]
+  dates.map(async(date)=>{
+    const apps=date.applications
+    if(apps!=null){
+    const group=new ApplicationRoommate({
+      startDate:date.min,
+      endDate:date.max,
+      roommates:[]
+    })
+    const saved=await group.save()
+    
+    apps.map(async(a)=>{
+      if(a!=null){
+        const room=group.roommates
+        
+      const app=await Application.find({$and:[{"_id":a._id}]})
+      room.push(app)
+      const add=await ApplicationRoommate.updateOne({"_id":group._id},{
+        $set:{"roommates":room}
+      })
+      console.log("add to group:")
+      console.log(add)
+    }
+    })
+    
+  
+    const g=await ApplicationRoommate.find({$and:[{"_id":group._id}]})
+    groups.push(g)
+  }
+     })
+     setTimeout(()=>{
+      res.json({success:true,groups:groups})
+     },700)
+   })
+  } 
+
+))
+router.get("/set-roommates",async(req,res)=>{
+axios.get("http://localhost:3012/admin-applications/roommates-2").then(async(response)=>{
+  const apps=response.data.dates
+  var i=0
+  
+  apps.map(async(d)=>{
+    const datess=d.applications
+    datess.map(async(a)=>{
+
+      if(a!=null){
+        console.log(a._id)
+
+      if(i==0){
+        const update=await Application.updateOne({"_id":a._id},{
+          $set:{"roommate1":false,"roommate":true,"roommate2":false}
+        })
+        console.log("roommate:")
+        console.log(update)
+        i++;
+      }
+      if(i==1){
+        const update=await Application.updateOne({"_id":a._id},{
+          $set:{"roommate1":true,"roommate":false,"roommate2":false}}
+          )
+        console.log("roommate1:")
+        console.log(update)
+        i++;
+      }
+      if(i==2){
+        const update=await Application.updateOne({"_id":a._id},{
+          $set:{"roommate1":false,"roommate2":true,"roommate":false}
+        })
+        console.log("roommate2:")
+        console.log(update)
+        i++;
+      }
+    }
+
+    })
+  
+    
+  })
+  setTimeout(()=>{
+    res.json({success:true,dates:apps})
+  },700)
+})
+})
+
 router.get("/booked-dates-all",async(req,res)=>{
   const apps=await Application.find({$and:[{"approved":1},{"fullSuite":false}]})
   const booked=[]
@@ -2894,6 +3743,7 @@ router.get("/booked-dates-all",async(req,res)=>{
   },1000)
 
 })
+
 router.get("/format-find-dates",(req,res)=>{
   var start=new Date()
   console.log("find-format")
@@ -3104,6 +3954,9 @@ router.get("/blocked-booked-dates",async(req,res)=>{
   var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
   "Aug","Sep","Oct","Nov","Dec"];
   var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  //date=new Date(s[3],monthnum[months.indexOf(s[1])-1],s[2])
+
+
   var cDate=new Date()
   
   const dates=[]
@@ -3350,6 +4203,61 @@ router.get("/newGetPaymentDueDate",async(req,res)=>{  res.setHeader("Access-Cont
   
   console.log(nextDate.toString())
   res.json(nextDate.toString().substring(0,15))
+})
+
+router.get("/booked",async(req,res)=>{
+  console.log("pop")
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+
+  const booked=await BookedDate.find({"fullSuite":false})
+  const dates=[]
+  booked.map(async(b)=>{
+    var app=await Application.find({$and:[{"_id":b.application_id}]})
+    var date=b.date.split(" ")
+    date=new Date(date[3],monthnum[months.indexOf(date[1])-1],date[2])
+    console.log(date)
+    console.log(app[0])
+    dates.push({_id:b._id,application_id:b.application_id,roomOneOne:b.roomOne,roomTwo:b.roomTwo,roomThree:b.roomThree,application:app[0],dateObj:date})
+    
+  })
+setTimeout(()=>{
+  res.json({success:true,dates:dates})
+},700)
+})
+
+router.get("/booked-dates",async(req,res)=>{
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+
+  const already=[]
+  const booked=await BookedDate.find({"fullSuite":false})
+  const dates=[]
+  booked.map(async(b)=>{
+    if(!already.includes(b.date)){
+    already.push(b.date)
+    const apps=[]
+    var app=await BookedDate.find({$and:[{"date":b.date}]})
+    var dateArr=b.date.split(" ")
+    dateArr=new Date(dateArr[3],monthnum[months.indexOf(dateArr[1])-1],dateArr[2])
+
+    app.map(async(a)=>{
+      const application=await Application.find({$and:[{"_id":a.application_id}]})
+      apps.push(application[0])
+    })
+    setTimeout(()=>{
+      dates.push({date:b.date,dateObj:dateArr,applications:apps})
+    },150)
+    }
+  
+  })
+
+  setTimeout(()=>{
+    res.json({success:true,dates:dates})
+  },2000)
+
 })
 
 module.exports=router
