@@ -157,6 +157,7 @@ router.get("/", async(req, res) => {
 router.get("/application/:id",async(req,res)=>{  
   res.setHeader("Access-Control-Allow-Origin", "*");
   console.log(req.params.id)
+  try{
   const application=await Application.find({$and:[{"_id":req.params.id}]})
   console.log(application)
   if(application.length>0){
@@ -164,6 +165,10 @@ router.get("/application/:id",async(req,res)=>{
   }else{
     res.json({success:false,message:"application does not exist"})
   }
+}catch(err){
+  console.log(err)
+  res.json({success:false,err:err})
+}
 })
 
 

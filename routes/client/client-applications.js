@@ -10,6 +10,7 @@ var {db}=require("../../config/db")
 const bodyParser = require("body-parser");
 const mongoose=require("mongoose")
 const uniqueValidator = require('mongoose-unique-validator')
+const https = require("https");
 
 const { User } = require("../../models/User");
 const {Application}=require("../../models/Application")
@@ -17,6 +18,7 @@ const {ApplicationOccupant}=require("../../models/ApplicationOccupant");
 const{ ApplicationReviewImage }=require( "../../models/ApplicationReviewImages");
 const{ApplicationGuest}=require("../../models/ApplicationGuests");
 const { BookedDate } = require("../../models/BookedDates");
+const { ApplicationRoommate } = require("../../models/ApplicationRoommates");
 
 
 const connectdb = async () => {
@@ -101,12 +103,9 @@ router.get("/", async(req, res) => {
 //TODO:use count to avoid map errors
 
 
-//first stages
-//args:firstname,lastname,email,phone
-const ad=[]
-console.log(ad.hasOwnProperty('length'))
-const add={child:[]}
-console.log(add.child.hasOwnProperty("length"))
+
+axios.defaults.timeout = 30000;
+axios.defaults.httpsAgent = new https.Agent({ keepAlive: true });
 
 router.post("/",async(req,res)=>{
 
@@ -249,6 +248,48 @@ router.post("/",async(req,res)=>{
 
 })
 
+router.get("/activeApplications/:id",async(req,res)=>{
+  console.log(req.params)
+  var app=await Application.find({"_id":req.params.id})
+  app=app[0]
+  if(app!=null){
+ 
+    if(app.fullSuite==false){
+console.log("ROOMMATES")
+      axios.get("http://localhost:3012/admin-applications/getActiveStatus/"+req.params.id).then(async(response)=>{
+        console.log(response.data)
+        if(response.data.currentlyOccupied){
+          console.log("ACTIVE")
+          console.log(app.roommate_group.toString())
+          const roommate=await ApplicationRoommate.find({})
+          roommate.map(async(r)=>{
+          
+          r.roommates.map((a)=>{
+            if(a._id==req.params.id){
+              console.log("match\n\n")
+              try{
+                const result=response.data
+                result.roommates=r.roommates
+                setTimeout(()=>{
+                  console.log(r)
+                  res.json(result)
+                },300)
+              }catch(err){
+                console.log("ALREADY SENT")
+              }
+            }
+          })
+          })
+        }
+      })
+   
+    }else{
+      axios.get("https://ghanahomestayserver.onrender.com/admin-applications/getActiveStatus/"+req.params.id).then((response)=>{
+        res.json(response.data)
+      })
+    }
+  }
+})
 router.get("/fix-booked",async(req,res)=>{
   const update=await Application.updateOne({"_id":"64da6f37b494001dbf940c7e"},{
     $set:{"roommate2":true}
