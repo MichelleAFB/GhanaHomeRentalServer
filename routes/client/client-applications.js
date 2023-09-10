@@ -104,7 +104,7 @@ router.get("/", async(req, res) => {
 
 
 
-axios.defaults.timeout = 30000;
+axios.defaults.timeout = 35000;
 axios.defaults.httpsAgent = new https.Agent({ keepAlive: true });
 
 router.post("/",async(req,res)=>{
@@ -255,8 +255,9 @@ router.get("/activeApplications/:id",async(req,res)=>{
   if(app!=null){
  
     if(app.fullSuite==false){
-console.log("ROOMMATES")
-      axios.get("http://localhost:3012/admin-applications/getActiveStatus/"+req.params.id).then(async(response)=>{
+      try{
+      console.log("ROOMMATES")
+      axios.get("https://ghanahomestayserver.onrender.com/admin-applications/getActiveStatus/"+req.params.id).then(async(response)=>{
         console.log(response.data)
         if(response.data.currentlyOccupied){
           console.log("ACTIVE")
@@ -282,11 +283,18 @@ console.log("ROOMMATES")
           })
         }
       })
+    }catch(err){
+      res.json({success:false,err:err})
+    }
    
     }else{
+      try{
       axios.get("https://ghanahomestayserver.onrender.com/admin-applications/getActiveStatus/"+req.params.id).then((response)=>{
         res.json(response.data)
       })
+    }catch(err){
+      res.json({success:false,err:err})
+    }
     }
   }
 })
