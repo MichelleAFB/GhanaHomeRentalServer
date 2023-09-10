@@ -3074,7 +3074,7 @@ router.get("/roommates-fix",(req,res)=>{
   var max
   const allDates=[]
 
-  axios.get("http://localhost:3012/admin-applications/fix-roommates").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/fix-roommates").then((response)=>{
    // console.log(response.data)
     const dates=response.data.dates
     var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
@@ -3158,7 +3158,7 @@ router.get("/roommates",(req,res)=>{
   "Aug","Sep","Oct","Nov","Dec"];
   var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
 
-  axios.get("http://localhost:3012/admin-applications/fix-roommates").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/fix-roommates").then((response)=>{
     const dates=response.data.dates
     //console.log(dates)
   const allDates=[]
@@ -3244,7 +3244,7 @@ router.get("/set-rooms",(req,res)=>{
 router.get("/roommates-22",(req,res)=>{
   console.log("hello")
 
-  axios.get("http://localhost:3012/admin-applications/roommates").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roommates").then((response)=>{
 
   //console.log(response.data)
   const dates=response.data.application
@@ -3447,7 +3447,7 @@ router.get("/sort-roommates",(req,res)=>{
   try{
     const allDates=[]
 
-  axios.get("http://localhost:3012/admin-applications/roommates-22").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roommates-22").then((response)=>{
     //console.log(response.data)
     const dates=response.data.dates
     try{
@@ -3530,7 +3530,7 @@ router.get("/sort-roommates",(req,res)=>{
 router.get("/roommates-",(req,res)=>{
   console.log("hello")
 
-  axios.get("http://localhost:3012/admin-applications/roommates").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roommates").then((response)=>{
     const apps= response.data.application
     var start= apps[0]!=null? new Date(apps[0].min):null
     var end= apps[0]!=null? new Date(apps[0].max):null
@@ -3639,7 +3639,7 @@ router.get("/delete-groups",async(req,res)=>{
   res.json(deleted)
 })
 router.get("/set-roommates-group",(async(req,res)=>{
-  axios.get("http://localhost:3012/admin-applications/set-roommates").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/set-roommates").then((response)=>{
 
   const dates=response.data.dates
   const groups=[]
@@ -3680,7 +3680,7 @@ router.get("/set-roommates-group",(async(req,res)=>{
 
 ))
 router.get("/set-roommates",async(req,res)=>{
-axios.get("http://localhost:3012/admin-applications/roommates-2").then(async(response)=>{
+axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roommates-2").then(async(response)=>{
   const apps=response.data.dates
   var i=0
   
