@@ -88,6 +88,7 @@ function handleDisconnect() {
 
 //handleDisconnect();
 router.get("/rooms-diagram",async(req,res)=>{
+  try{
   const approved=await Application.find({$and:[{"approved":1},{"application_status":"CONFIRMED"}]})
   const already=[]
 
@@ -138,6 +139,9 @@ router.get("/rooms-diagram",async(req,res)=>{
 setTimeout(()=>{
   res.json({success:true,rooms:rooms})
 },500)
+  }catch(err){
+    console.log(err)
+  }
 })
 router.get("/body",(req,res)=>{
   console.log(req.body)
@@ -4233,6 +4237,7 @@ setTimeout(()=>{
 })
 
 router.get("/booked-dates",async(req,res)=>{
+  try{
   var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
   "Aug","Sep","Oct","Nov","Dec"];
   var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
@@ -4262,6 +4267,9 @@ router.get("/booked-dates",async(req,res)=>{
   setTimeout(()=>{
     res.json({success:true,dates:dates})
   },2000)
+  }catch(err){
+    res.json({success:false,err:err})
+  }
 
 })
 
