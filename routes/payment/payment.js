@@ -529,9 +529,13 @@ promise.then(()=>{
 
 
 })
+})
 
- 
+router.get("/getAccountBalance",async(req,res)=>{
+  const stripe = require('stripe')(process.env.STRIP_LIVE_SECRET_KEY);
 
+const balance = await stripe.balance.retrieve();
+res.json({success:true,balance:balance})
 })
 module.exports=router
 

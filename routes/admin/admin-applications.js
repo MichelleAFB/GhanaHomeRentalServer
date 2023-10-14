@@ -3761,7 +3761,8 @@ router.get("/format-find-dates",(req,res)=>{
       //console.log(response.data)
       console.log("COMPLETE")
       const dates=response.data.allDates
-     
+      if(dates.length>0){
+     try{
     
       const date=[]
       const dateString=[]
@@ -3791,6 +3792,12 @@ router.get("/format-find-dates",(req,res)=>{
            
         },150)
       }
+      }catch(err){
+        console.log(err)
+      }
+    }else{
+      res.send({allDates:[]})
+    }
     }
   })
 })
@@ -3936,11 +3943,11 @@ axios.get("https://ghanahomestayserver.onrender.com/admin-applications/blocked-b
       })
       
       setTimeout(()=>{
-        try{sort(dates).then(()=>{
+        try{
           
           res.json({success:true,start:finalStart,dates:dates})
     
-        })
+        
       }catch(err){
         console.log("alreadysent")
       }
@@ -3956,6 +3963,7 @@ axios.get("https://ghanahomestayserver.onrender.com/admin-applications/blocked-b
 })
 
 router.get("/blocked-booked-dates",async(req,res)=>{
+  try{
   const blocked=await BlockedDate.find({})
   const booked=await BookedDate.find({})
   const roomsAvailable=[]
@@ -3997,7 +4005,8 @@ router.get("/blocked-booked-dates",async(req,res)=>{
     //console.log("netnext:"+new Date(nextnext) + "\n date:"+date+"\n\n")
     
    
-    console.log(app[0].roomTwo)
+    //console.log(app[0].roomTwo)
+   // console.log(app[0])
      
     if(date>=nextnext && !dates.includes(date)){
       if(app[0].roomOne!=true && app[0].roomTwo!=true && app[0].roomThree!=true && app[0].fullSuite==true){
@@ -4012,6 +4021,10 @@ router.get("/blocked-booked-dates",async(req,res)=>{
     res.json({success:true,dates:dates,length:dates.length,roomsAvailable:roomsAvailable})
 
   },500)
+}catch(err){
+  console.log(err)
+  res.json({success:false,err:err})
+}
 })
  router.get("/roomsAvailableString",async(req,res)=>{
   var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
@@ -4070,6 +4083,7 @@ router.get("/roomsAvailable",async(req,res)=>{
  
   
   const apps=await Application.find({$and:[{"application_status":"CONFIRMED"},{"fullSuite":false}]})
+  
   const dates=[]
   const allBook=[]
   const datesArr=[]
@@ -4087,11 +4101,14 @@ router.get("/roomsAvailable",async(req,res)=>{
 
 
    dates.push({startDate:new Date(ma),endDate:new Date(mi),roomOne:a.roomOne,roomTwo:a.roomTwo,roomThree:a.roomThree})
-
-
-
-
   })
+ /* axios.get("https://ghanahomestayserver.onrender.com/admin-applications/blocked-booked-dates").then((response)=>{
+
+  
+  })
+  */
+
+
   setTimeout(()=>{
     axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roomsAvailableString").then((response)=>{
       console.log(response.data)

@@ -43,8 +43,23 @@ const bodyParser = require("body-parser");
 const env=process.env.NODE_ENV
 const strip=require('stripe')(process.env.STRIP_KEY)
 const new_db_config=require("./config/newdb")
+//const process=require("pm2")
+
+var cluster = require('cluster');
+if (cluster.isMaster) {
+  cluster.fork();
+
+  cluster.on('exit', function(worker, code, signal) {
+    cluster.fork();
+  });
+}
+
+if (cluster.isWorker) {
+  
 
 const app=express()
+
+
 app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json());
@@ -211,3 +226,6 @@ app.get("/", (req, res) => {
     
   })
 });
+}
+
+

@@ -318,7 +318,7 @@ router.post("/create-application",async(req,res)=>{
   console.log(adults)
 
 
- 
+ var saved
  console.log(adults)
   const applicant={firstname:req.body.firstname,middlename:req.body.middlename,lastname:req.body.lastname,email:req.body.email}
  
@@ -337,13 +337,9 @@ router.post("/create-application",async(req,res)=>{
     console.log("user")
     console.log(use)
     var user={firstname:req.body.firstname,middlename:req.body.middleName,lastname:req.body.lastname,email:req.body.email}
-   console.log(req.body)
+   console.log(req.body,"\n\n")
 
-    console.log("\n\n\n\n user")
-    console.log(user)
     if(user!=null){
-      console.log("user not null")
-      console.log("found applicant")
      
         const cDate=new Date()
         const currDate=cDate.toString().substring(0,15)
@@ -359,6 +355,8 @@ router.post("/create-application",async(req,res)=>{
      if(children!=null){
       if(children.hasOwnProperty("length")==true){
         cLength=children.length
+        console.log("children",cLength)
+
       }
     }
   
@@ -400,7 +398,7 @@ router.post("/create-application",async(req,res)=>{
       roomThree:rooms.roomThree,
       fullSuite: (rooms.roomOne==true || rooms.roomTwo==true || rooms.roomThree==true)?false:true
     })
-    const saved=await application.save()
+    saved=await application.save()
     var adultSaved
     var childSaved
     adults.map(async(o)=>{
@@ -417,6 +415,8 @@ router.post("/create-application",async(req,res)=>{
     adultSaved=await adult.save()
     })
     if(cLength>0){
+      console.log("children ocuppants:",cLength)
+
       children.map(async(o)=>{
         const child=new ApplicationOccupant({
           firstname:o.firstname,
@@ -434,7 +434,7 @@ router.post("/create-application",async(req,res)=>{
     console.log(err )
   }
   setTimeout(()=>{
-   res.json({success:true,application:application})
+   res.json({success:true,application:saved})
   },800)
   }else{
     res.json({success:false,message:"no account found"})
@@ -1157,7 +1157,6 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
     ]
   })
   app=app[0]
-  console.log(app)
   const cDate=new Date()
             const currDate=cDate.toString().substring(0,15)
             var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
@@ -1171,18 +1170,16 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
             var activeDate=new Date(startDate)
             var nextnext=activeDate.setDate(cDate.getDate()+1)
             activeDate=new Date(nextnext)
-            console.log("today:"+activeDate.toString().substring(0,15))
             
             var currentlyWrong=false
             const prom=new Promise(async(resolve,reject)=>{
               if((app.application_status=='CONFIRMED' || app.application_status=="CHECKEDIN") && app.approved==1){
-                console.log("check if date is valie")
                 if((cDate>=startDate && cDate<=endDate) && (activeDate>=startDate && activeDate<=endDate) &&app.currentlyOccupied!=1){
                   console.log("confirmed and in range:CHANGE TO ACTUVE")
                    const update=await Application.updateOne({"_id":req.params.id},{
                     $set:[{"currentlyOccupied":1}]
                    })
-                   console.log(update)
+                  // console.log(update)
                    res.json({success:true,currentlyOccupied:true})
                 }else if((cDate>=startDate && cDate<=endDate) && (activeDate>=startDate && activeDate<=endDate) &&app.currentlyOccupied==1){
                   res.json({success:true,currentlyOccupied:true})
@@ -1195,7 +1192,6 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                   console.log("confirmed but but person forgot to checkout")
                  axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
                     if(response.data.success){
-                      console.log(app.stay_start_date+" changed to checkout by force")
                       res.json({success:true,currentlyOccupied:false})
                     }else{
                      res.json({success:false,message:"could not change status"})
@@ -1239,7 +1235,6 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                     })
                     
                     axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT",{message:"Applicants checked out at "+ cDate}).then((response)=>{
-                      console.log(response)
                       if(response.data.success){
                         res.json({success:true,currentlyOccupied:false})
                       }
@@ -1624,6 +1619,55 @@ router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
   })
 })
 
+
+router.get("/checkRooms/:startDate/:endDate",async(req,res)=>{
+
+  const s=new Date(req.params.startDate)
+  const e=new Date(req.params.endDate)
+  console.log(s)
+  console.log(e)
+
+  const days=[]
+
+  const startDate=s.toString().split(" ")
+  const  endDate=e.toString().split(" ")
+  //console.log(startDate)
+
+  
+           var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+            "Aug","Sep","Oct","Nov","Dec"];
+            var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+
+        var start=new Date(startDate[3],monthnum[months.indexOf(startDate[1])-1],startDate[2])
+        console.log("start",start)
+          var currentApp
+        while(start<e){
+
+          
+          var booked=await  BookedDate.find({$and:[{"date":start.toString().substring(0,15)}]})
+         // console.log(booked)
+          if(booked.length>0){
+            days.push({"day":start,applications:[booked]})
+          }
+          
+          var next=new Date(start)
+          next=next.setDate(start.getDate()+1)
+          console.log("\n\n",next)
+          start=new Date(next)
+          console.log("start",start)
+         
+        }
+        try{
+        setTimeout(()=>{
+          res.json({success:true,applications:days})
+
+        },1000)
+      }catch(err){
+        console.log(err)
+      }
+        
+
+})
 /********************************************GUESTS************************ */
 /*
 router.get("/guests/:id",async(req,res)=>{
@@ -1674,6 +1718,20 @@ router.get("/guests/:id",async(req,res)=>{
   })
 })
 */
+
+router.get("/remove-empty-apps",async(req,res)=>{
+  const apps=await Application.find({})
+  apps.map(async(a)=>{
+    const occ=await ApplicationOccupant.find({$and:[{"application_id":a._id}]})
+    if(occ.length==0 && a.fullSuite==true){
+      console.log(a.stay_start_date+"\n",a.stay_end_date)
+      console.log(a)
+      const dele=await Application.deleteOne({$and:[{"_id":a._id}]})
+      console.log(dele)
+    }
+
+  })
+})
 
 router.get("/guests/:id/:occupant_id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
