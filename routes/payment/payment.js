@@ -1,4 +1,3 @@
-const strip=require('stripe')("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")
 const express = require("express");
 const router = express.Router();
 const cookie = require("universal-cookie");
@@ -13,7 +12,9 @@ const mongoose=require("mongoose")
 const uniqueValidator = require('mongoose-unique-validator')
 const { Application } =require('../../models/Application');
 const { reject } = require('lodash');
-
+const strip=require('stripe')(process)
+const dotenv = require("dotenv").config({path:"../../config/.env"})
+console.log("dotenv",dotenv)
 
 const connectdb = async () => {
   try {
@@ -537,6 +538,8 @@ router.get("/getAccountBalance",async(req,res)=>{
 const balance = await stripe.balance.retrieve();
 res.json({success:true,balance:balance})
 })
+
+
 module.exports=router
 
 /**
