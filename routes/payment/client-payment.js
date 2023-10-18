@@ -12,7 +12,9 @@ const mongoose=require("mongoose")
 const uniqueValidator = require('mongoose-unique-validator')
 const { Application } =require('../../models/Application');
 const { reject } = require('lodash');
-const process=require("process")
+const process=require("process");
+const { Charge } = require("../../models/Charges");
+const { default: Stripe } = require("stripe");
 const strip=require('stripe')(process.env.STRIP_LIVE_SECRET_KEY)
 const dotenv = require("dotenv").config({path:"../../config/.env"})
 
@@ -184,168 +186,6 @@ console.log("\n\n\n"+req.params.id+"\n\n\n")
 })
 
 
-router.get("/checkPaymentDue/:id",async(req,res)=>{
-  res.setHeader("Access-Control-Allow-Origin", "*");
-
-
-  db.query("select * from ghanahomestay.applications where id=?",req.params.id,(err,results)=>{
-    const application=results[0]
-    console.log("start:"+application.stay_start_date)
-    console.log("end:"+application.stay_end_date)
-    const ss=new Date().toString().substring(0,15)
-    const e=application.datePaymentDue.toString()
-    const start=ss.split(" ")
-    const end=e.split(" ")
-      console.log(end)
-      var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
-            "Aug","Sep","Oct","Nov","Dec"];
-      var daysInMonth=[31,28,31,30,31,30,31,31,30,31,30,31]
-      const currentDate=new Date()
-      const currentYear=currentDate.getFullYear()
-     
-      const leapYears=[2024,2028,2032,2036,2040,2044,2048,2052]
-  
-    if(start[3]==end[3]){
-     
-      const startMonth=months.indexOf(start[1])
-      const endMonth=months.indexOf(end[1])
-  
-      const diffMonth=endMonth-startMonth
-  
-      var diffDays
-      console.log("startMonth:"+startMonth+" end month:"+endMonth)
-      //same month
-      if(diffMonth==0){
-        
-        console.log("under a month: no days="+diffDays) 
-        if(leapYears.includes(parseInt(end[3]))){
-          
-        }else{
-          diffDays=end[2]-start[2]
-          console.log(diffDays)
-          res.status(200).json({success:true,days:diffDays})
-        }
-      }
-      //different month
-      else{
-        //diff month
-        console.log("diffmonth")
-        if(leapYears.includes(parseInt(end[3]))){
-          months[1]=months[1]+1
-          var startString
-          var endString
-          const sDays=daysInMonth[months.indexOf(start[1])]
-          const eDays=daysInMonth[months.indexOf(end[1])]
-          console.log("sday:"+sDays);
-          console.log("enddays:"+eDays)
-          console.log(parseInt(start[2].substring(0,1)))
-          if(parseInt(start[2].substring(0,1))==0){
-            startString=parseInt(start[2].substring(1,2))
-          }else{
-            startString=parseInt(start[2])
-  
-          }
-          if(parseInt(end[2].substring(0,1))==0){
-            endString=parseInt(end[2].substring(1,2))
-          }else{
-            endString=parseInt(end[2])
-          }
-          console.log(startString)
-          var stDays
-          console.log(startString==parseInt(daysInMonth[months.indexOf(start[1])]))
-          if(startString==parseInt(daysInMonth[months.indexOf(start[1])])){
-            stDays=1
-          }else{
-            console.log(sDays-startString)
-            stDays=sDays-startString
-          }
-          console.log("stDays:"+stDays)
-          const enDays=endString
-          console.log("endays:"+enDays)
-          var totalDays=enDays+stDays
-          console.log("TOTAL:"+totalDays)
-          if(diffMonth>1){
-            var index=endMonth-startMonth+1
-            while(index<endMonth){
-              console.log("totalDay:"+totalDays)
-              totalDays=totalDays+daysInMonth[months.indexOf(months[index])]
-              index++
-            }
-            console.log("HERE1")
-           
-            const total=totalDays
-            res.json({success:true,days:total})
-            return total
-            sessionStorage.setItem("noDays",total)
-          }else{
-            console.log("HERERER")
-            res.json({success:true,days:totalDays})
-            return totalDays
-            sessionStorage.setItem("noDays",totalDays)
-          }
-          
-        }else{
-          var startString
-          var endString
-          const sDays=daysInMonth[months.indexOf(start[1])]
-          const eDays=daysInMonth[months.indexOf(end[1])]
-          console.log("sday:"+sDays);
-          console.log("enddays:"+eDays)
-          console.log(parseInt(start[2].substring(0,1)))
-          if(parseInt(start[2].substring(0,1))==0){
-            startString=parseInt(start[2].substring(1,2))
-          }else{
-            startString=parseInt(start[2])
-  
-          }
-          if(parseInt(end[2].substring(0,1))==0){
-            endString=parseInt(end[2].substring(1,2))
-          }else{
-            endString=parseInt(end[2])
-          }
-          console.log(startString)
-          var stDays
-          console.log(startString==parseInt(daysInMonth[months.indexOf(start[1])]))
-          if(startString==parseInt(daysInMonth[months.indexOf(start[1])])){
-            stDays=1
-          }else{
-            console.log(sDays-startString)
-            stDays=sDays-startString
-          }
-          console.log("stDays:"+stDays)
-          const enDays=endString
-          console.log("endays:"+enDays)
-          var totalDays=enDays+stDays
-          console.log("total days:"+totalDays)
-          if(diffMonth>1){
-            var index=endMonth-startMonth+1
-            while(index<endMonth){
-              console.log("totalDay:"+totalDays)
-              totalDays=totalDays+daysInMonth[months.indexOf(months[index])]
-              index++
-            }
-            console.log("nes totalDays"+totalDays)
-            sessionStorage.setItem("noDays",totalDays)
-           
-            const total=totalDays
-            res.json({success:true,days:totalDays})
-            return total
-          }else{
-            console.log("HEREE@")
-            res.json({success:true,days:totalDays})
-          }
-        }
-  
-        
-  
-      }
-    }else{
-  
-      console.log("years dont match")
-    }
-
-  })
-})
 router.post("/get-payment-details",async(req,res)=>{
   const customers=await strip.charges.list({})
   console.log(customers)
@@ -375,6 +215,130 @@ router.post("/update-session-url",async(req,res)=>{
   res.json({update:update,success:true,updatedUrl:a[0].paymentSessionUrl})
 
 })
+
+router.get("/create-charges",async(req,res)=>{
+  const arr=[]
+  const apps=await Application.find({$and:[{"paymentSessionUrl":{$ne:null}}]})
+  const sessions=await strip.checkout.sessions.list({})
+  //res.json(sessions)
+  apps.map(async(a)=>{
+    var s=sessions.data.filter((s)=>{
+      if(a.url==s.url){
+        return s
+      }
+    })
+    if(s.length>0){
+    console.log("\n\n")
+    s=s[0]
+    const intent=s.payment_intent
+    var charge=await strip.charges.list({
+      "payment_intent":intent
+    })
+    console.log("\n\n")
+    charge=charge.data[0]
+
+    var time =new Date()
+    time.setMilliseconds(charge.created)
+    //const date= new Date(time.setMilliseconds())
+    console.log(time)
+    const newCharge=new Charge({
+     chargeId:charge.id,
+     application_Id:a._id,
+     amount:charge.amount/100,
+     receipt_url:charge.receipt_url,
+     payment_intent:intent,
+     payment_method:charge.payment_method,
+     card:charge,
+     created:time
+    })
+
+    console.log(newCharge)
+    //const newCharge=await newCharge.save()
+    //console.log(newCharge)
+    arr.push({charge:charge})
+    }
+    
+  })
+
+  setTimeout(()=>{
+      res.json(arr)
+  },1000)
+})
+//TODO after paying create charge
+
+router.post("/create-charge",async(req,res)=>{
+    const id=req.body.id
+    console.log(req.body)
+    var app=await Application.find({$and:[{"_id":id},{"paymentSessionUrl":{$ne:null}}]})
+    console.log(app)
+    app=app[0]
+    if(app.datePaid!=null){
+      console.log("here")
+      var session=await strip.checkout.sessions.retreive({
+        url:app.paymentSessionUrl
+      })
+      console.log(session)
+      session=session.data[0]
+      var intent=session.payment_intent
+      console.log("intent",intent)
+      var charge=await strip.charges.retreive({
+        payment_intent:intent
+      })
+      console.log("CHARGE:::",charge)
+      
+      
+    }
+})
+
+router.get("/create-new-charge/:application_id/:payment_intent",async(req,res)=>{
+  const arr=[]
+  const apps=await Application.find({$and:[{"paymentSessionUrl":{$ne:null}}]})
+  const sessions=await strip.checkout.sessions.list({})
+  //res.json(sessions)
+  apps.map(async(a)=>{
+    var s=sessions.data.filter((s)=>{
+      if(a.url==s.url){
+        return s
+      }
+    })
+    if(s.length>0){
+    console.log("\n\n")
+    s=s[0]
+    const intent=s.payment_intent
+    var charge=await strip.charges.list({
+      "payment_intent":intent
+    })
+    console.log("\n\n")
+    charge=charge.data[0]
+
+    var time =new Date()
+    time.setMilliseconds(charge.created)
+    //const date= new Date(time.setMilliseconds())
+    console.log(time)
+    const newCharge=new Charge({
+     chargeId:charge.id,
+     application_Id:a._id,
+     amount:charge.amount/100,
+     receipt_url:charge.receipt_url,
+     payment_intent:intent,
+     payment_method:charge.payment_method,
+     card:charge,
+     created:time
+    })
+
+    console.log(newCharge)
+    //const newCharge=await newCharge.save()
+    //console.log(newCharge)
+    arr.push({charge:charge})
+    }
+    
+  })
+
+  setTimeout(()=>{
+      res.json(arr)
+  },1000)
+})
+
 router.get("/switch",async(req,res)=>{
   const apps=await Application.find({$and:[{"datePaid":{$ne:null}}]})
   const charges=await strip.charges.list({})

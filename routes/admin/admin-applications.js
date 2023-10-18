@@ -422,7 +422,7 @@ router.get("/active",async(req,res)=>{
 
   apps.map((a)=>{
     
-    axios.get("http://localhost:3012/admin-applications/ActiveStatus/"+a._id).then((response)=>{
+    axios.get("https://ghanahomestayserver.onrender.com/admin-applications/ActiveStatus/"+a._id).then((response)=>{
       console.log(response.data)
       
       console.log("\n\n")
@@ -439,7 +439,7 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
     if(req.params.status=="RESERVED"){
       var currDate=new Date()
       currDate=currDate.toString().substring(0,15)
-      axios.get("http://localhost:3012/admin-applications/newGetPaymentDueDate").then(async(response)=>{
+      axios.get("https://ghanahomestayserver.onrender.com/admin-applications/newGetPaymentDueDate").then(async(response)=>{
         const application=await Application.updateOne(
           {"_id":req.params.id},
           {$set:{
@@ -846,7 +846,7 @@ router.get("/checkAvailability/:id",async(req,res)=>{
     const conflicts=[]
     var dates
     const prom= new Promise((resolve,reject)=>{
-      axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
+      axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
         try{
            console.log(response.data)
             const booked_dates=response.data.booked_dates
@@ -873,7 +873,7 @@ router.get("/checkAvailability/:id",async(req,res)=>{
                  //console.log(date)
               
                   if(date.date==start && date.application_id!=req.params.id){
-               
+               console.log(req.params.id,date.application_id)
                   
                     if(date.fullSuite==true){
                       //console.log("WHOLESUITE BOOKED FOR START: "+date.date + bdate.date)
@@ -883,7 +883,7 @@ router.get("/checkAvailability/:id",async(req,res)=>{
                       }
 
                     }else{
-                      console.log("\nCHECK ROOMS:"+date.date+"\n")
+                      //console.log("\nCHECK ROOMS:"+date.date+"\n")
                       if((date.roomOne && app.roomOne) || (date.roomTwo && app.roomTwo) || (app.roomThree && date.roomThree)){
                         startConflict=true
                         if(!conflicting_dates.includes(start)){
@@ -891,11 +891,11 @@ router.get("/checkAvailability/:id",async(req,res)=>{
                         }
                       }else  if(!(app.roomOne && date.roomOne) && !(app.roomTwo && date.roomTwo )&& !(app.roomThree && date.roomThree) && app._id!=date.application_id){
                         console.log("EXCEPTION START")
-                        console.log("date")
+                        /*console.log("date")
                         console.log(date)
                         console.log("bdate")
                         console.log(bdate)
-                        console.log("\n\n")
+                        console.log("\n\n")*/
 
                         //console.log(bdate)
                         //console.log(date)
@@ -915,7 +915,7 @@ router.get("/checkAvailability/:id",async(req,res)=>{
                       }
 
                     }else{
-                      console.log("\nCHECK ROOMS:"+date.date+"\n")
+                     // console.log("\nCHECK ROOMS:"+date.date+"\n")
 
                       if((date.roomOne && app.roomOne) || (date.roomTwo && app.roomTwo) || (app.roomThree && date.roomThree)){
                         console.log("NOT AVAILABLE")
@@ -924,12 +924,12 @@ router.get("/checkAvailability/:id",async(req,res)=>{
                           conflicting_dates.push(end)
                        }
                       }else if(!(app.roomOne && date.roomOne) && !(app.roomTwo && date.roomTwo )&& !(app.roomThree && date.roomThree)){
-                        console.log("EXCEPTION END")
+                        /*console.log("EXCEPTION END")
                         console.log("date")
                         console.log(date)
                         console.log("bdate")
                         console.log(bdate)
-                        console.log("\n\n")
+                        console.log("\n\n")*/
                        // console.log(date)
                         //console.log(bdate)
                         //console.log("\n\n")
@@ -940,12 +940,12 @@ router.get("/checkAvailability/:id",async(req,res)=>{
                
                   if(bdate.date==date.date && date.date!=end && date.date!=start && date.application_id!=req.params.id){
                     if(date.fullSuite==true){
-                      console.log("WHOLESUITE BOOKED FOR DAY CuRR:"+date.date +" "+ bdate.date)
+                     /* console.log("WHOLESUITE BOOKED FOR DAY CuRR:"+date.date +" "+ bdate.date)
                       console.log("date")
                       console.log(date)
                       console.log("bdate")
                       console.log(bdate)
-                      console.log("\n\n")
+                      console.log("\n\n")*/
 
                       available=false
                       if(!conflicting_dates.includes(date.date)){
@@ -962,12 +962,12 @@ router.get("/checkAvailability/:id",async(req,res)=>{
                        }
                       }else  if(!(app.roomOne && date.roomOne) && !(app.roomTwo && date.roomTwo )&& !(app.roomThree && date.roomThree))
                       {
-                        console.log("EXCEPTION")
+                       /* console.log("EXCEPTION")
                         console.log("date")
                         console.log(date)
                         console.log("bdate")
                         console.log(bdate)
-                        console.log("\n\n")
+                        console.log("\n\n")*/
                        
                       }
                     }
@@ -1000,12 +1000,14 @@ router.get("/checkAvailability/:id",async(req,res)=>{
       
          
       //TODO:NOW CHECK TO SE IF PAYED
-        const payedApp=await Application.find({$or:[
-          {$and:[{"application_status":"PAYED"},{"_id":req.params.id}]},
-          {$and:[{"datePaid":!null},{"_id":req.params.id}]}
+        const payedApp=await Application.find({$and:[{"_id":req.params.id},{$or:[
+          {$and:[{"application_status":"PAYED"}]},
+          {$and:[{"datePaid":{$ne:null}},{"_id":req.params.id}]}]}
         ]})
-        console.log(payedApp)
+       // console.log(payedApp)
         if(payedApp!=null && conflicting_dates.length==0){
+          var appp=await Application.find({$and:[{"_id":req.params.id}]})
+          console.log(appp[0].application_status)
             res.json({success:true,paid:true,conflicting_dates:conflicts,no_days:conflicting_dates.length,application:application})   
         }else{
            res.json({success:true,paid:false,conflicting_dates:conflicting_dates,no_days:conflicting_dates.length-2})
@@ -1082,7 +1084,7 @@ router.get("/checkAvailability/:id",async(req,res)=>{
 
         const prom=new Promise((resolve,reject)=>{
 
-          axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then((response)=>{
+          axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then((response)=>{
             console.log(response.data)
             console.log("gere")
             const booked_dates=response.data.booked_dates
@@ -1229,7 +1231,7 @@ setTimeout(()=>{
 })
 
 router.post("/checkBlockedDates",async(req,res)=>{
-  console.log("here checkBlock")
+ // console.log("here checkBlock")
   console.log(req.body)
   const conflict=[]
   var conflicted=false
@@ -1265,7 +1267,7 @@ router.get("/check",async(req,res)=>{
 
     apps.map((a)=>{
       console.log(apps[i].id)
-      axios.get("http://localhost:3012/admin-applications/checkAvailability/"+a._id.toString()).then(async(response)=>{
+      axios.get("https://ghanahomestayserver.onrender.com/admin-applications/checkAvailability/"+a._id.toString()).then(async(response)=>{
         var data=await response.data
          console.log(response.data)
          console.log(apps[i])
@@ -1409,7 +1411,7 @@ router.post("/deny-booking/:id",async(req,res)=>{
         console.log("\n\n\nremove")
         console.log(remove)
         if(removed==null){
-          axios.post("http://localhost:3012/admin-applications/setStatus/"+req.params.id+"/DENIED",{message:"Your reservation for stay ["+app.stay_start_date+" through "+app.stay_end_date+"] is denied."}).then((response)=>{
+          axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+req.params.id+"/DENIED",{message:"Your reservation for stay ["+app.stay_start_date+" through "+app.stay_end_date+"] is denied."}).then((response)=>{
             console.log(response.data)
             if(response.data.success){
               res.json({success:true,changed:remove.deleteCount,canceled_dates:dates})
@@ -1449,7 +1451,7 @@ router.post("/deny-booking/:id",async(req,res)=>{
                  const changed=results1.changedRows
                  if(changed>0){
                   //change in  approve and confirmedApproved is true
-                  axios.post("http://localhost:3012/admin-applications/remove-booked-dates/"+req.params.id).then((response)=>{
+                  axios.post("https://ghanahomestayserver.onrender.com/admin-applications/remove-booked-dates/"+req.params.id).then((response)=>{
                     console.log("changed:"+changed)
                     console.log(response.data)
                     res.json({success:true,changed:changed,canceled_dates:response.data.canceled_dates})
@@ -1458,7 +1460,7 @@ router.post("/deny-booking/:id",async(req,res)=>{
 
                  }else{
                   //already denied, remove booking jic
-                  axios.post("http://localhost:3012/admin-applications/remove-booked-dates/"+req.params.id).then((response)=>{
+                  axios.post("https://ghanahomestayserver.onrender.com/admin-applications/remove-booked-dates/"+req.params.id).then((response)=>{
                     console.log("changed:"+changed)
                     console.log(response.data)
                     res.json({success:true,changed:changed,canceled_dates:response.data.canceled_dates})
@@ -1468,7 +1470,7 @@ router.post("/deny-booking/:id",async(req,res)=>{
                 }
              }
             })
-   /* axios.post("http://localhost:3012/admin-applications/remove-booked-dates/"+req.params.id).then(response)=>{
+   /* axios.post("https://ghanahomestayserver.onrender.com/admin-applications/remove-booked-dates/"+req.params.id).then(response)=>{
 
     }
     */
@@ -1476,7 +1478,7 @@ router.post("/deny-booking/:id",async(req,res)=>{
         }else{
           //already-canceld
           console.log("already Canceld\n\n")
-          axios.post("http://localhost:3012/admin-applications/remove-booked-dates/"+req.params.id).then((response)=>{
+          axios.post("https://ghanahomestayserver.onrender.com/admin-applications/remove-booked-dates/"+req.params.id).then((response)=>{
             console.log(response)
             db.query("update ghanahomestay.applications set application_status='DENIED' where id=?",req.params.id,(errNoChanged,resultsNoChanged)=>{
               if(errNoChanged){
@@ -1566,7 +1568,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                   //TODO:EITHER CHANGED TO CHECKEDOUT OUT IF PERSON FORGOT TO CHECKOUT OR DONT
                    if(cDate>endDate &&  (activeDate>=start && activeDate<=endDate)  ){
                   console.log("confirmed but but person forgot to checkout")
-                 axios.post("http://localhost:3012/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
+                 axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
                     if(response.data.success){
                       console.log(app.stay_start_date+" changed to checkout by force")
                       res.json({success,currentlyOccupied:false})
@@ -1577,7 +1579,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                   
                 }else  if(cDate>endDate &&  (activeDate>=startDate && activeDate<=endDate)  ){
                   console.log("confirmed but but person forgot to checkout")
-                 axios.post("http://localhost:3012/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
+                 axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
                     if(response.data.success){
                       console.log(app.stay_start_date+" changed to checkout by force")
                       res.json({success,currentlyOccupied:false})
@@ -1664,7 +1666,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                   console.log("current date is adter end date:"+(cDate>endDate))
                    if(cDate>endDate &&  (activeDate>=startDate && activeDate<=endDate)  ){
                   console.log("confirmed but but person forgot to checkout")
-                 axios.post("http://localhost:3012/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
+                 axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
                   console.log(response.data)
                     if(response.data.success){
                       console.log(app.stay_start_date+" changed to checkout by force")
@@ -1688,7 +1690,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                     })
                     console.log("herher")
 
-                    axios.post("http://localhost:3012/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
+                    axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
                       console.log(response.data)
                       if(response.data.success){
                         console.log(app.stay_start_date+" changed to checkout by force")
@@ -1738,12 +1740,18 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
 router.post("/approve-booking/:id",async(req,res)=>{  
   res.setHeader("Access-Control-Allow-Origin","*")
  
+  var appp=await Application.find({$and:[{"_id":req.params.id}]})
+  appp=appp[0]
+  if(appp!=null){
+    console.log(appp.application_staus)
+    if(appp.application_status!="PAYEDANDAPPROVED" &&  appp.application_status!="CONFIRMED"){
 
-  axios.get("http://localhost:3012/admin-applications/checkAvailability/"+req.params.id).then(async(response)=>{
+  
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/checkAvailability/"+req.params.id).then(async(response)=>{
     
 
    
-    console.log(response.data)
+    //console.log(response.data)
     
     if(!response.data.success){
       res.json({success:false,message:response.data.message})
@@ -1766,27 +1774,29 @@ router.post("/approve-booking/:id",async(req,res)=>{
       if(app!=null){
         const booked_dates=await BookedDate.find({$and:[{"application_id":!req.params.id}]})
         console.log("booked_dates")
-        console.log(booked_dates)
-        console.log("booked dates")
-        console.log(booked_dates)
+        //console.log(booked_dates)
+        //console.log("booked dates")
+        //console.log(booked_dates)
         if(booked_dates.length>0){
-          axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
+          axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
+            console.log(response.data,"CHECKROOMS FINISH")
             if(response.data.success){
               const our_dates=response.data.booked_dates
               booked_dates.map((b)=>{
                 our_dates.map((o)=>{
                   console.log(o.date+" "+b.date)
-                  console.log(b)
-                  console.log(o.application_id+" "+b.application_id)
+                  console.log(b.application_id)
+                  console.log("1787")
+                  //console.log(o.application_id+" "+b.application_id)
                   if(o.date==b.date && o.application_id!=b.application_id ){
                     if(b.fullsuite==true)
-                    console.log("match\n\n")
+                    //console.log("match\n\n")
                     conflicts.push({application_id:b.application_id,date:b.date})
                     
                     index++;
                   }else{
                     if((b.roomOne==true && o.roomOne==true) ||  (o.roomTwo==true && b.roomTwo==true) || (o.roomThree==true && b.roomThree==true)){
-                      console.log("match\n\n")
+                     // console.log("match\n\n")
                       conflicts.push({application_id:b.application_id,date:b.date})
                       
                       index++;
@@ -1855,8 +1865,8 @@ router.post("/approve-booking/:id",async(req,res)=>{
                     })
                     
                     if(updateApp.acknowledged==true){
-                      console.log(our_dates.length)
-                      console.log(alreadybooked+indLength)
+                     // console.log(our_dates.length)
+                     // console.log(alreadybooked+indLength)
                       
                       if(alreadyBooked+indLength==our_dates.length){
                         const alldays=await BookedDate.find({$and:[{"application_id":req.params.id}]})
@@ -1877,15 +1887,15 @@ router.post("/approve-booking/:id",async(req,res)=>{
         }else{
           var indLength=0
                 var alreadyBooked=0
-          axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
+          axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then(async(response)=>{
             console.log(response.data)
             if(response.data.success){
-              console.log(response.data)
+             // console.log(response.data)
               const our_dates=response.data.booked_dates
               console.log("\n\nour date")
-              console.log(our_dates)
+              //console.log(our_dates)
               var index=0
-                axios.post("http://localhost:3012/admin-applications/checkBlockedDates",{dates:response.data.booked_dates,startBuffer:response.data.startBuffer,endBuffer:response.data.endBuffer}).then((response2)=>{
+                axios.post("https://ghanahomestayserver.onrender.com/admin-applications/checkBlockedDates",{dates:response.data.booked_dates,startBuffer:response.data.startBuffer,endBuffer:response.data.endBuffer}).then((response2)=>{
                   console.log(response2.data)
                   console.log("HEREE")
                   if(response2.data.blocked==true || response2.data.blocked_dates.length>0){
@@ -1922,12 +1932,12 @@ router.post("/approve-booking/:id",async(req,res)=>{
                   setTimeout(()=>{
                     our_dates.map(async(o)=>{ 
                       try{
-                        console.log("here1")
+                       // console.log("here1")
                       var alreadybooked=await BookedDate.find({$and:[{"date":o.date},{"application_id":a._id}]})
                       }catch(error){
                         console.log(error)
                       }
-                      console.log(alreadybooked)
+                     // console.log(alreadybooked)
                       if(alreadybooked.length>0){
                         alreadyBooked++
                       }else{
@@ -1986,17 +1996,17 @@ router.post("/approve-booking/:id",async(req,res)=>{
                     console.log("998")
                     console.log(updateApp)
                     if(updateApp.acknowledged==true ){
-                      console.log(alreadyBooked+indLength)
-                      console.log(our_dates.length)
+                     // console.log(alreadyBooked+indLength)
+                     // console.log(our_dates.length)
                    
                       const alldays=await BookedDate.find({$and:[{"application_id":req.params.id}]})
                       res.json({success:true,approved:true,conflicting_dates:conflicting_dates,paid:response.data.paid,no_booked:alreadyBooked+indLength,booked_dates:alldays})
                         
-                        console.log(updateApp)
+                        //console.log(updateApp)
 
                     }else if(checkApp[0]!=null && updateApp.acknowledged==false){
                       console.log("Already updated")
-                      console.log(checkApp)
+                      //console.log(checkApp)
                       const alldays=await BookedDate.find({$and:[{"application_id":req.params.id}]})
                       res.json({success:true,approved:true,conflicting_dates:conflicting_dates,paid:response.data.paid,no_booked:alreadyBooked+indLength,booked_dates:alldays})
                     }
@@ -2015,6 +2025,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
           })
         }
       }else{
+        
         res.json({success:false,message:"application "+ req.params.id+" does not exist."})
       }
 
@@ -2025,6 +2036,12 @@ router.post("/approve-booking/:id",async(req,res)=>{
     }
   }
   })
+}else{
+  res.json({success:true,approved:appp.application_status=="CONFIRMED" || appp.application_status=="PAYEDANDAPPROVED"?true:false})
+}
+}else{
+  res.json({success:false,err:"no user"})
+}
 })
 
 
@@ -2077,7 +2094,7 @@ router.get("/activeStatus/:id",async(req,res)=>{
                   //TODO:EITHER CHANGED TO CHECKEDOUT OUT IF PERSON FORGOT TO CHECKOUT OR DONT
                    if(cDate>endDate &&  (activeDate>=start && activeDate<=endDate)  ){
                   console.log("confirmed but but person forgot to checkout")
-                /*  axios.get("http://localhost:3012/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
+                /*  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
                     if(response.data.success){
                       console.log(app.stay_start_date+" changed to checkout by force")
                       //TODO res.json({success,currentlyOccupied:false})
@@ -2186,7 +2203,7 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
             })
             console.log(setNotCurr)
            if(app.checkoutTime=="" || app.checkoutTime=='' && cDate>endDate){
-          axios.post("http://localhost:3012/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/", {message:"Occupants checkedout."}).then((response)=>{
+          axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/", {message:"Occupants checkedout."}).then((response)=>{
               res.json({Success:true,currentlyOccupied:false})
              })
            }else if(app.checkoutTime=="" || app.checkoutTime=='' && cDate<startDate){
@@ -2369,7 +2386,7 @@ router.post("/reserveAndPromptPay/:id",async(req,res)=>{
 
     const paymentDueDate=nextDate.toString().substring(0,15)
 
-    axios.get("http://localhost:3012/admin-applications/checkAvailability/"+req.params.id).then(async(response)=>{
+    axios.get("https://ghanahomestayserver.onrender.com/admin-applications/checkAvailability/"+req.params.id).then(async(response)=>{
      
       console.log(response.data)
       const conflicting_dates=response.data.conflicting_dates
@@ -2384,7 +2401,7 @@ router.post("/reserveAndPromptPay/:id",async(req,res)=>{
           console.log(updatesApp)
           if(updatedApp.acknowledged==true){
             //TODO: createbooked
-            axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+req.params.id).then((response1)=>{
+            axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+req.params.id).then((response1)=>{
               if(response1.data.success){
                 var booked=response1.data.booked_dates
                 booked.map(async(b)=>{
@@ -2413,7 +2430,7 @@ router.post("/reserveAndPromptPay/:id",async(req,res)=>{
           }else{
             var index=0
            
-               axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+id).then((response1)=>{
+               axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+id).then((response1)=>{
                 console.log("allbooked date\n\n\n")
                 console.log(response1.data)
                 const datesToReserve=[]
@@ -2476,7 +2493,7 @@ router.post("/reserveAndPromptPay/:id",async(req,res)=>{
 
       const paymentDueDate=nextDate.toString().substring(0,15)
 
-      axios.get("http://localhost:3012/admin-applications/checkAvailability/"+id).then((response)=>{
+      axios.get("https://ghanahomestayserver.onrender.com/admin-applications/checkAvailability/"+id).then((response)=>{
         console.log(response.data.booked_dates)
         console.log(response.data)
         const conflicting_dates=response.data.conflicting_dates
@@ -2491,7 +2508,7 @@ router.post("/reserveAndPromptPay/:id",async(req,res)=>{
             }else{
               var index=0
              
-                 axios.get("http://localhost:3012/admin-applications/allBookingDatesForApplication/"+id).then((response1)=>{
+                 axios.get("https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/"+id).then((response1)=>{
                   console.log("allbooked date\n\n\n")
                   console.log(response1.data)
                   const datesToReserve=[]
@@ -2606,7 +2623,7 @@ router.post("/release-reservation-due-to-unpaid/:id",async(req,res)=>{
   console.log(app)
   app=app[0]
   if(app!=null){
-  axios.get("http://localhost:3012/admin-applications/checkPayementDeadline/"+req.params.id).then(async(response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/checkPayementDeadline/"+req.params.id).then(async(response)=>{
     if(response.data.success && response.data.hasDueDate && response.data.passedDue){
        const released=await Application.updateOne(
         {"_id":req.params.id},
@@ -2651,7 +2668,7 @@ router.post("/release-reservation-due-to-unpaid/:id",async(req,res)=>{
      console.log(count)
      
      if(count>0){
-      axios.get("http://localhost:3012/admin-applications/checkPaymentDeadline/"+req.params.id).then((response)=>{
+      axios.get("https://ghanahomestayserver.onrender.com/admin-applications/checkPaymentDeadline/"+req.params.id).then((response)=>{
         console.log(response.data)
         console.log(response.data.success==true&& response.data.hasDueDate==true && response.data.passedDue==true)
         if(response.data.success && response.data.hasDueDate && response.data.passedDue ){
@@ -2835,7 +2852,51 @@ router.get("/rooms-Available/:startDate/:endDate",async(req,res)=>{
     res.json({success:true,available:true})
   }
 })
+router.get("/valid-dates",async(req,res)=>{
+  const allDates=[]
+  const appCount=[]
+  const apps=await Application.find({$and:[{$or:[{"application_status":"CONFIRMED"},{"application_status":"CHECKEDIN"},{"application_status":"PAYEDANDAPPROVED"}]},{"fullSuite":false}]})
 
+  apps.map(async(a)=>{
+    
+    var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+    "Aug","Sep","Oct","Nov","Dec"];
+    var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+    var first=a.stay_start_date.split(" ")
+    first=new Date(first[3],monthnum[months.indexOf(first[1])-1],first[2])
+    first.setDate(first.getDate()-1)
+    var end=a.stay_end_date.split(" ")
+    end=new Date(end[3],monthnum[months.indexOf(end[1])-1],end[2])
+    end.setDate(end.getDate()+1)
+    console.log(first)
+    console.log(end)
+    const dates=getDatesArray2(first,end)
+    console.log(dates)
+    var i=1
+    dates.map(async(d)=>{
+      var book=await BookedDate.find({$and:[{"date":d}]})
+      book=book[0]
+      if(book!=null){
+        var bdate=book.date.split(" ")
+         bdate=new Date(bdate[3],monthnum[months.indexOf(bdate[1])-1],bdate[2])
+         allDates.push(bdate)
+         i++
+         if(i==dates.length){
+          console.log("DONE",allDates)
+          appCount.push(a)
+          if(appCount.length==apps.length){
+         
+          }
+         }
+      }
+    })
+  })
+  setTimeout(()=>{
+    res.json({allDates:allDates,success:true})
+
+  },500)
+
+})
 
 router.get("/find-dates",(req,res)=>{
   var oldDates=[]
@@ -2845,7 +2906,7 @@ router.get("/find-dates",(req,res)=>{
 
   
   try{
-  axios.get("http://localhost:3012/admin-applications/blocked-booked-dates").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/blocked-booked-dates").then((response)=>{
    try{ 
     if(response.data.dates.length>0){
     console.log(response.data)
@@ -3187,12 +3248,13 @@ router.get("/roommates-fix",(req,res)=>{
   var max
   const allDates=[]
 
-  axios.get("http://localhost:3012/admin-applications/fix-roommates").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/fix-roommates").then((response)=>{
    // console.log(response.data)
     const dates=response.data.dates
     var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
     "Aug","Sep","Oct","Nov","Dec"];
     var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+
     dates.map((d)=>{
       if(d.applications!=null){
        
@@ -3271,7 +3333,7 @@ router.get("/roommates",(req,res)=>{
   "Aug","Sep","Oct","Nov","Dec"];
   var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
 
-  axios.get("http://localhost:3012/admin-applications/fix-roommates").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/fix-roommates").then((response)=>{
     const dates=response.data.dates
     //console.log(dates)
   const allDates=[]
@@ -3357,7 +3419,7 @@ router.get("/set-rooms",(req,res)=>{
 router.get("/roommates-22",(req,res)=>{
   console.log("hello")
 
-  axios.get("http://localhost:3012/admin-applications/roommates").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roommates").then((response)=>{
 
   //console.log(response.data)
   const dates=response.data.application
@@ -3560,7 +3622,7 @@ router.get("/sort-roommates",(req,res)=>{
   try{
     const allDates=[]
 
-  axios.get("http://localhost:3012/admin-applications/roommates-22").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roommates-22").then((response)=>{
     //console.log(response.data)
     const dates=response.data.dates
     try{
@@ -3643,7 +3705,7 @@ router.get("/sort-roommates",(req,res)=>{
 router.get("/roommates-",(req,res)=>{
   console.log("hello")
 
-  axios.get("http://localhost:3012/admin-applications/roommates").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roommates").then((response)=>{
     const apps= response.data.application
     var start= apps[0]!=null? new Date(apps[0].min):null
     var end= apps[0]!=null? new Date(apps[0].max):null
@@ -3752,7 +3814,7 @@ router.get("/delete-groups",async(req,res)=>{
   res.json(deleted)
 })
 router.get("/set-roommates-group",(async(req,res)=>{
-  axios.get("http://localhost:3012/admin-applications/set-roommates").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/set-roommates").then((response)=>{
 
   const dates=response.data.dates
   const groups=[]
@@ -3793,7 +3855,7 @@ router.get("/set-roommates-group",(async(req,res)=>{
 
 ))
 router.get("/set-roommates",async(req,res)=>{
-axios.get("http://localhost:3012/admin-applications/roommates-2").then(async(response)=>{
+axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roommates-2").then(async(response)=>{
   const apps=response.data.dates
   var i=0
   
@@ -3865,7 +3927,7 @@ router.get("/booked-dates-all",async(req,res)=>{
 router.get("/format-find-dates",(req,res)=>{
   var start=new Date()
   console.log("find-format")
-  axios.get("http://localhost:3012/admin-applications/find-dates").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/valid-dates").then((response)=>{
     //console.log(response.data)
     if(response.data.success){
       //console.log(response.data)
@@ -3876,6 +3938,7 @@ router.get("/format-find-dates",(req,res)=>{
     
       const date=[]
       const dateString=[]
+      console.log(response.data.allDates[0]instanceof Date)
       if(dates.length>0){
         dates.map((d)=>{
           date.push(new Date(d))
@@ -3895,9 +3958,13 @@ router.get("/format-find-dates",(req,res)=>{
         })
         setTimeout(()=>{
           console.log("here")
-          axios.get("http://localhost:3012/admin-applications/roomsAvailable").then((response2)=>{
+          axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roomsAvailable").then((response2)=>{
             console.log(response2.data)
-            res.send({time:(new Date())-start,success:true,allDates:date,dates:response.data.dates,dateString:dateString,room_dates:response2.data.room_dates, room_string_dates:response2.data.room_string_dates,room_string_string:response2.data.room_string_strings})
+            console.log(response2.data.room_string_dates[0] instanceof Object)
+            console.log(response2.data.room_string_dates[0].toString() instanceof Object,response2.data.room_string_dates[0].toString())
+          var goodStrings=response2.data.room_string_dates.toString() instanceof String? response2.data.room_string_dates: response2.data.room_string_dates[0]
+
+            res.send({time:(new Date())-start,success:true,allDates:dates,dates:response.data.allDates,dateString:dateString,room_dates:response2.data.room_dates, room_string_dates:goodStrings,room_string_string:response2.data.room_string_strings})
           })
            
         },150)
@@ -3916,7 +3983,7 @@ router.get("/sort-unavailable",(req,res)=>{
   const arr=[]
   const dateString=[]
   try{
-  axios.get("http://localhost:3012/admin-applications/unavailable-dates").then((response)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/unavailable-dates").then((response)=>{
    try{ 
     console.log(response.data.dates)
     const dates=response.data.dates
@@ -4033,7 +4100,7 @@ setTimeout(()=>{
 })
 router.get("/unavailable-dates",async(req,res)=>{
 
-axios.get("http://localhost:3012/admin-applications/blocked-booked-dates").then((response)=>{
+axios.get("https://ghanahomestayserver.onrender.com/admin-applications/blocked-booked-dates").then((response)=>{
   if(response.data.success){
     if(response.data.length>0){
       const dates=response.data.dates
@@ -4163,16 +4230,21 @@ router.get("/blocked-booked-dates",async(req,res)=>{
     //console.log(app[0].roomTwo)
    // console.log(app[0])
    if(app[0]!=null){
-    console.log(b)
-    console.log(app[0])
+    //console.log(b)
+    //console.log(app[0])
     console.log("\n\n")
 
      var stayStart=app[0].stay_start_date.split(" ")
      var stayEnd=app[0].stay_end_date.split(" ")
       stayStart=new Date(stayStart[3],monthnum[months.indexOf(stayStart[1])-1],stayStart[2])
      stayEnd=new Date(stayEnd[3],monthnum[months.indexOf(stayEnd[1])-1],stayEnd[2])
-
-    if(date>=nextnext && !dates.includes(date) ){
+    
+    
+    if(stayEnd>=nextnext && !dates.includes(date) ){
+      console.log("end",stayEnd)
+      console.log("start",stayStart)
+      console.log("next",nextnext)
+      console.log("date",date)
       
       if(app[0].roomOne!=true && app[0].roomTwo!=true && app[0].roomThree!=true && app[0].fullSuite==true){
         console.log(app[0])
@@ -4188,7 +4260,7 @@ router.get("/blocked-booked-dates",async(req,res)=>{
     
     res.json({success:true,dates:dates,length:dates.length,roomsAvailable:roomsAvailable})
 
-  },500)
+  },1000)
 }catch(err){
   console.log(err)
   res.json({success:false,err:err})
@@ -4203,7 +4275,7 @@ router.get("/blocked-booked-dates",async(req,res)=>{
  const arr=[]
  const all_dates=[]
   const strings=[]
-  const apps=await Application.find({$and:[{"application_status":"CONFIRMED"},{"fullSuite":false}]})
+  const apps=await Application.find({$and:[{$or:[{"application_status":"CONFIRMED"},{"application_status":"CHECKEDIN"},{"application_status":"PAYEDANDAPPROVED"}]},{"fullSuite":false}]})
   console.log(apps)
   if(apps.length>0){
     apps.map( async(a)=>{
@@ -4242,16 +4314,18 @@ router.get("/blocked-booked-dates",async(req,res)=>{
     res.json({success:true,string_dates:all_dates,string_string_dates:strings})
   },500)
  })
+
 router.get("/roomsAvailable",async(req,res)=>{
   var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
   "Aug","Sep","Oct","Nov","Dec"];
   var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
 
   //date=new Date(date[3],monthnum[months.indexOf(date[1])-1],date[2])
+  const datesObject=[]
  
   
-  const apps=await Application.find({$and:[{"application_status":"CONFIRMED"},{"fullSuite":false}]})
-  
+
+  const apps=await Application.find({$and:[{$or:[{"application_status":"CONFIRMED"},{"application_status":"CHECKEDIN"},{"application_status":"PAYEDANDAPPROVED"}]},{"fullSuite":false}]})  
   const dates=[]
   const allBook=[]
   const datesArr=[]
@@ -4270,7 +4344,7 @@ router.get("/roomsAvailable",async(req,res)=>{
 
    dates.push({startDate:new Date(ma),endDate:new Date(mi),roomOne:a.roomOne,roomTwo:a.roomTwo,roomThree:a.roomThree})
   })
- /* axios.get("http://localhost:3012/admin-applications/blocked-booked-dates").then((response)=>{
+ /* axios.get("https://ghanahomestayserver.onrender.com/admin-applications/blocked-booked-dates").then((response)=>{
 
   
   })
@@ -4278,7 +4352,7 @@ router.get("/roomsAvailable",async(req,res)=>{
 
 
   setTimeout(()=>{
-    axios.get("http://localhost:3012/admin-applications/roomsAvailableString").then((response)=>{
+    axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roomsAvailableString").then((response)=>{
       console.log(response.data)
       res.json({success:true,room_dates:dates,room_string_dates:response.data.string_dates,room_string_strings:response.data.string_string_dates})
 
@@ -4469,7 +4543,7 @@ module.exports=router
       const conflict_dates=[]
       console.log(results)
       if(results==null || results.length==0){
-        axios.get("http://localhost:3012/admin-applications/calculate-all-booked-dates/"+req.params.id).then((response)=>{
+        axios.get("https://ghanahomestayserver.onrender.com/admin-applications/calculate-all-booked-dates/"+req.params.id).then((response)=>{
           console.log(response.data.booked_dates)
           const booked_dates=response.data.booked_dates
           var index=1
@@ -4488,7 +4562,7 @@ module.exports=router
           
         })
       }else{
-        axios.get("http://localhost:3012/admin-applications/calculate-all-booked-dates/"+req.params.id).then((response)=>{
+        axios.get("https://ghanahomestayserver.onrender.com/admin-applications/calculate-all-booked-dates/"+req.params.id).then((response)=>{
           const booked_dates=response.data.booked_dates
 
         const flagApproved=false

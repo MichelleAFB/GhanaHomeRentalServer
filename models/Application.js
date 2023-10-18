@@ -174,6 +174,8 @@ const applicationSchema=new mongoose.Schema({
   roommate_group:{
     type:Array
     
+  },charges:{
+    type: Object
   }
 
 
