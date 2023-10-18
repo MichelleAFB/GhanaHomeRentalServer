@@ -102,7 +102,7 @@ const applicationSchema=new mongoose.Schema({
     required:false
   },
   datePaid:{
-    type:String,
+    type:Date,
     required:false
   },
   currentlyOccupied:{
@@ -134,7 +134,7 @@ const applicationSchema=new mongoose.Schema({
     required:false
   },
   timeCheckedIn:{
-    type:String,
+    type:Date,
     required:false
   },
 

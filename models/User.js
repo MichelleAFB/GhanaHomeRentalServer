@@ -44,6 +44,11 @@ const userSchema=new mongoose.Schema({
     required:false,
     default:0
   
+  },customerId:{
+    type:String
+  },
+  paymentObj:{
+    type: Object
   }
 
 })

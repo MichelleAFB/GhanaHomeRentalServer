@@ -15,9 +15,9 @@ import download from 'image-downloader'
 import denv from 'dotenv'
 import session from 'express-session'
 */
-
+const process=require("process")
 const dotenv = require("dotenv");
-dotenv.config({path:'.env'});
+dotenv.config({path:'./config/.env'});
 const express = require("express");
 //const app = express();
 const mongoose = require("mongoose");
@@ -160,6 +160,8 @@ app.listen( process.env.PORT,()=> {console.log("Server running ")});
 app.use("/applications", applicationsRouter);
 */
 
+
+
 const residentsRouter = require("./router").residentsRouter;
 app.use("/residents", residentsRouter);
 
@@ -187,8 +189,12 @@ app.use("/current-resident",currentClientRouter)
 
 const adminCurrentClientRouter=require("./router").adminCurrentClientRouter
 app.use("/admin-current-resident",adminCurrentClientRouter)  
+
+
+const paymentClientRouter=require("./router").paymentClientRouter
+app.use("/payment-client",paymentClientRouter)  
 /************************************************************************************************************************************************************************************************************************************************************************************************************* */
-const routers=[{router:residentsRouter,path:"/residents"},{router:signUpRouter,path:"/sign-up"},{router:signInRouter,path:"/sign-in"},{router:stripPaymentRouter,path:"/payment"},{router:adminApplicationsRouter,path:"/admin-applications"},{router:clientApplicationsRouter,path:"/client-applications"},{router:adminCurrentClientRouter,path:"/admin-current-resident"},{router:currentClientRouter,path:"/current-resident"}]
+const routers=[{router:residentsRouter,path:"/residents"},{router:signUpRouter,path:"/sign-up"},{router:signInRouter,path:"/sign-in"},{router:stripPaymentRouter,path:"/payment"},{router:adminApplicationsRouter,path:"/admin-applications"},{router:clientApplicationsRouter,path:"/client-applications"},{router:adminCurrentClientRouter,path:"/admin-current-resident"},{router:currentClientRouter,path:"/current-resident"},{router:paymentClientRouter,path:"/payment-client"}]
 
 
 

@@ -12,9 +12,9 @@ const mongoose=require("mongoose")
 const uniqueValidator = require('mongoose-unique-validator')
 const { Application } =require('../../models/Application');
 const { reject } = require('lodash');
-const strip=require('stripe')(process)
+const process=require("process")
+const strip=require('stripe')(process.env.STRIP_LIVE_SECRET_KEY)
 const dotenv = require("dotenv").config({path:"../../config/.env"})
-console.log("dotenv",dotenv)
 
 const connectdb = async () => {
   try {

@@ -33,4 +33,7 @@ const currentClientRouter=require("./routes/client/client-current")
 
 const adminCurrentClientRouter=require("./routes/admin/admin-client-current")
 
- module.exports={clientApplicationsRouter,adminApplicationsRouter,residentsRouter,signInRouter,signUpRouter,stripPaymentRouter,currentClientRouter,adminCurrentClientRouter}
+
+const paymentClientRouter=require("./routes/payment/client-payment")
+
+ module.exports={clientApplicationsRouter,adminApplicationsRouter,residentsRouter,signInRouter,signUpRouter,stripPaymentRouter,currentClientRouter,adminCurrentClientRouter,paymentClientRouter}
