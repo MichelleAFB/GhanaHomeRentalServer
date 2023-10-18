@@ -227,14 +227,16 @@ router.get("/create-charges",async(req,res)=>{
         return s
       }
     })
+    console.log()
     if(s.length>0){
     console.log("\n\n")
     s=s[0]
+    console.log(Object.keys(s))
     const intent=s.payment_intent
     var charge=await strip.charges.list({
       "payment_intent":intent
     })
-    console.log("\n\n")
+    //console.log("\n\n")
     charge=charge.data[0]
 
     var time =new Date()
@@ -252,8 +254,12 @@ router.get("/create-charges",async(req,res)=>{
      created:time
     })
 
-    console.log(newCharge)
-    //const newCharge=await newCharge.save()
+    //console.log(newCharge)
+    try{
+    const save=await newCharge.save()
+    }catch(err){
+      console.log(arr)
+    }
     //console.log(newCharge)
     arr.push({charge:charge})
     }
@@ -272,20 +278,64 @@ router.post("/create-charge",async(req,res)=>{
     var app=await Application.find({$and:[{"_id":id},{"paymentSessionUrl":{$ne:null}}]})
     console.log(app)
     app=app[0]
-    if(app.datePaid!=null){
+    if(app.paymentSessionUrl!=null){
       console.log("here")
-      var session=await strip.checkout.sessions.retreive({
-        url:app.paymentSessionUrl
+      var sessions=await strip.checkout.sessions.list({})
+     // console.log(sessions)
+      var session=sessions.data.filter((a)=> {
+       console.log(a)
+        if(a.url==app.paymentSessionUrl){
+        return a
+      }})
+      if(session.length>0){
+        session=session
+
+     // console.log(Object.keys(session))
+
+      const intent=session.payment_intent
+      var charge=await strip.charges.list({
+        "payment_intent":intent
       })
-      console.log(session)
-      session=session.data[0]
-      var intent=session.payment_intent
+      console.log("\n\n")
+      charge=charge.data[0]
+  
+      var time =new Date()
+      time.setMilliseconds(charge.created)
+      //const date= new Date(time.setMilliseconds())
+      const allCharges=await Charge.find({$and:[{"chargeId":charge.id}]})
+      if(allCharges.length==0){
+      console.log(time)
+      try{
+      const newCharge=new Charge({
+       chargeId:charge.id,
+       application_Id:app._id,
+       amount:charge.amount/100,
+       receipt_url:charge.receipt_url,
+       payment_intent:intent,
+       payment_method:charge.payment_method,
+       card:charge,
+       created:time
+      })
+  
+      console.log(newCharge)
+      const save=await newCharge.save()
+      res.json({success:true,charge:save})
+      arr.push({charge:charge})
+      }catch(err){
+        res.json({success:true,err:err})
+      }
+    }else{
+      res.json({success:false,err:"charge already exists"})
+    }
+      
+     /* var intent=session.payment_intent
       console.log("intent",intent)
       var charge=await strip.charges.retreive({
         payment_intent:intent
       })
       console.log("CHARGE:::",charge)
-      
+      */
+    }
       
     }
 })
