@@ -398,7 +398,7 @@ router.post("/create-application",async(req,res)=>{
       roomThree:rooms.roomThree,
       fullSuite: (rooms.roomOne==true || rooms.roomTwo==true || rooms.roomThree==true)?false:true
     })
-    saved=await application.save()
+     saved=await application.save()
     var adultSaved
     var childSaved
     adults.map(async(o)=>{
