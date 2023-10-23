@@ -352,13 +352,13 @@ router.get("/create-new-charge/:application_id/:payment_intent",async(req,res)=>
       }
     })
     if(s.length>0){
-    console.log("\n\n")
+    //console.log("\n\n")
     s=s[0]
     const intent=s.payment_intent
     var charge=await strip.charges.list({
       "payment_intent":intent
     })
-    console.log("\n\n")
+    //console.log("\n\n")
     charge=charge.data[0]
 
     var time =new Date()

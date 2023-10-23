@@ -90,8 +90,68 @@ function handleDisconnect() {
 }
 
 //handleDisconnect();
+function getDatesArray2(start, end) {
+  for(var arr=[],dt=new Date(start); dt<=new Date(end); dt.setDate(dt.getDate()+1)){
+      arr.push(dt.toString().substring(0,15));
+  }
+  return arr;
+};
+function convertTZ(date, tzString) {
+  return new Date((typeof date === "string" ? new Date(date) : date).toLocaleString("en-US", {timeZone: tzString}));   
+}
 
+router.get("/getActiveStatus3/:id",async(req,res)=>{
+  
+  var app= await Application.find({
+    $and:[
+      {"_id":req.params.id}
+    ]
+  })
+  app=app[0]
+  console.log(app)
+  if(app!=null){
+   const timezone=  Intl.DateTimeFormat().resolvedOptions().timeZone
+  var cDate=new Date()
+  cDate=convertTZ(cDate.toLocaleString({timezone:timezone}),timezone)
+  console.log(cDate)
+  
 
+  console.log(cDate)
+            const currDate=cDate.toString().substring(0,15)
+            var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+            "Aug","Sep","Oct","Nov","Dec"];
+            var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+            var st=app.stay_start_date.split(" ")
+            var et=app.stay_end_date.split(" ")
+           //active Date starts 1day before
+            const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+            const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+            var activeDate=new Date(startDate)
+           // var nextnext=activeDate.setDate(cDate.getDate()+1)
+           // activeDate=new Date(nextnext)
+            console.log("today:"+activeDate.toString().substring(0,15))
+         
+            if(endDate>=new Date() && new Date()>=startDate){
+              console.log("ACTIVE")
+              res.json({success:true,currentlyOccupied:true})
+              /*const dates=getDatesArray2(startDate,endDate)
+              var check=true
+              dates.map(async(d)=>{
+                if(check){
+                  check=false
+                const others=await BookedDate.find({$and:[{fullsuite:false},{date:d},{"application_id":{$ne:req.params.id}}]})
+
+                if(others.length>0){
+                  console.log("Others exists")
+                }
+                }
+              })
+              */
+            }else{
+              res.json({success:true,currentlyOccupied:false})
+            }
+  }
+})
 
 
 router.get("/", async(req, res) => {

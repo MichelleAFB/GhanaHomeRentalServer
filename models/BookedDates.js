@@ -7,6 +7,10 @@ const bookedDatesSchema=new mongoose.Schema({
     type:String,
     required:true
   },
+  dateObject:{
+    type:Date,
+    required:true
+  },
   application_id:{
     type:String,
     required:true

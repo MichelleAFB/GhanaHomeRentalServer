@@ -3,13 +3,13 @@ const uniqueValidator = require('mongoose-unique-validator')
 
 const RoommateSchema=new mongoose.Schema({
 startDate:{
-  type:String
+  type:Date
 },
 endDate:{
-  type:String
+  type:Date
 },
 roommates:{
-  
+  type:Array
 }
 
 })

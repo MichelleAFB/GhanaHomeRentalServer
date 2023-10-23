@@ -17,6 +17,8 @@ const {BookedDate}=require('../../models/BookedDates')
 const{BlockedDate}=require("../../models/BlockedDates");
 const e = require("express");
 const { ApplicationRoommate } = require("../../models/ApplicationRoommates");
+const { billingbudgets_v1beta1 } = require("googleapis");
+const { $elemMatch } = require("sift");
 
 
 router.use(bodyParser.json());
@@ -592,6 +594,7 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
 })
 
 
+
 router.get("/setRooms",async(req,res)=>{
 
   const booked=await BookedDate.find({})
@@ -730,6 +733,379 @@ function getDatesArray2(start, end) {
   }
   return arr;
 };
+
+router.get("/text/:id",async(req,res)=>{
+  const app=await Application.findOne({$and:[{"_id":req.params.id}]})
+  const find=await ApplicationRoommate.find({
+    "roommates":{$elemMatch:{"_id":req.params.id}}})
+    console.log(find)
+})
+
+router.get("/get-min-and-max-dates/:id",async(req,res)=>{
+  //const roommates=await ApplicationRoommate.find({})
+  var app=await Application.findOne({$and:[{"_id":req.params.id}]})
+
+  
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  
+  var appStart= app.stay_start_date.split(" ")
+  var appEnd=app.stay_end_date.split(" ")
+  appStart=new Date(appStart[3],monthnum[months.indexOf(appStart[1])-1],appStart[2])
+  appEnd=new Date(appEnd[3],monthnum[months.indexOf(appEnd[1])-1],appEnd[2])
+  const dates=getDatesArray(appStart,appEnd)
+  const datesStrings=getDatesArray2(appStart,appEnd)
+
+  
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  var check=true
+  var max
+  var minDate
+  var maxDate
+
+  const already=[app._id]
+  const apps=[app]
+  dates.map(async(d)=>{
+    var booked=await BookedDate.find({"dateObject":d})
+    if(booked.length>0){
+    booked.map(async(d)=>{
+     
+      var other=await Application.findOne({"_id":d.application_id})
+      if(!already.includes(d.application_id)){
+        apps.push(other)
+        already.push(d.application_id)
+    }
+      var start=other.stay_start_date.split(" ")
+      start=new Date(start[3],monthnum[months.indexOf(start[1])-1],start[2])
+      
+      var end=other.stay_end_date.split(" ")
+      end=new Date(end[3],monthnum[months.indexOf(end[1])-1],end[2])
+  
+      const aMin= await BookedDate.findOne({$and:[{"application_id":d.application_id},{$min:"dateObject"}]})
+      console.log("min:",aMin.date)
+      const aMax= await BookedDate.findOne({$and:[{"application_id":d.application_id},{$max:"dateObject"}]})
+      console.log("max:",aMax.date)
+      if(minDate==null){
+        minDate=start
+      }
+      if(maxDate==null){
+        maxDate=end
+      }
+      minDate=Math.min(start,minDate)
+      maxDate=Math.max(end,maxDate)
+    })
+   // const maxDate=booked.reduce()
+    //console.log(booked.length)
+    max=Math.max(max,booked.length)
+  }
+  })
+
+  setTimeout(()=>{
+    console.log("\n\n\nFinal")
+      console.log(new Date(maxDate))
+      console.log(new Date(minDate))
+      res.json({min:new Date(minDate),max:new Date(maxDate),success:true,applications:apps})
+  },1000)
+})
+
+
+//bad
+router.get("/generate-roommates/:id",async(req,res)=>{
+  var app=await Application.findOne({$and:[{"_id":req.params.id}]})
+  var apps= await Application.find({$and:[{"_id":{$ne:req.params.id}},{
+    $or:[
+      {"application_status":"CHECKEDIN"},
+      {"application_status":"CONFIRMED"},
+      {"application_status":"CHECKEDOUT"},
+    ]
+  }]})
+  const created=[]
+  if(apps.length>0){
+   const timezone=  Intl.DateTimeFormat().resolvedOptions().timeZone
+  var cDate=new Date()
+  
+  const currDate=cDate.toString().substring(0,15)
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  
+  var appStart= app.stay_start_date.split(" ")
+  var appEnd=app.stay_end_date.split(" ")
+  appStart=new Date(appStart[3],monthnum[months.indexOf(appStart[1])-1],appStart[2])
+  appEnd=new Date(appEnd[3],monthnum[months.indexOf(appEnd[1])-1],appEnd[2])
+  appStart.setDate(appStart.getDate()-1)
+  appEnd.setDate(appEnd.getDate()+1)
+  const appDates=getDatesArray2(appStart,appEnd)
+
+  
+apps.map((a)=>{
+
+            var st=a.stay_start_date.split(" ")
+            var et=a.stay_end_date.split(" ")
+            const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+            const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+            var activeDate=new Date(startDate)
+            startDate.setDate(startDate.getDate()-1)
+            endDate.setDate(endDate.getDate()+1)
+            var check=true         
+            const dates=getDatesArray2(startDate,endDate)
+            dates.map(async(d)=>{
+                if(appDates.includes(d) && check){
+                  check=false
+                  if(a.roommates.length>0){
+                  var already=a.roommates.filter((p)=>{
+                      if(p._id==req.params.id){
+                        return p
+                      }
+                  })
+                  var alreadyApp=app.roommates.filter((p)=>{
+                    if(p._id==a._id){
+                      return p
+                    }
+                })
+                  
+                  if(already.length==1){
+                    //dont add
+                  console.log("already",already)
+                  }else{
+                    //add app to others roommate
+                   /* const updateOther=await Application.updateOne({$and:[{"_id":a._id}]},{
+                      $push:{"roommates":app}
+                    })
+                    console.log("update other roommates",updateOther)
+                    */
+                  }
+                  if(alreadyApp.length==1){
+                    //dont add
+                  }else{
+                    const updateApp=await Application.updateOne({$and:[{"_id":app._id}]},{
+                      $push:{"roommates":a}
+                    })
+                  }
+                  var found
+                  const roommateGroup=await ApplicationRoommate.find({})
+                  roommateGroup.map((g)=>{
+                    var appStartCurr=new Date()
+                    appStartCurr.setDate(appStart.getDate()+1)
+                    var appEndCurr=new Date()
+                    appEndCurr.setDate(appEnd.getDate()-1)
+                  var otherStart=new Date()
+                    var otherEnd=new Date()
+                    otherStart.setDate(startDate.getDate()+1)
+                    otherEnd.setDate(endDate.getDate()-1)
+
+                    if((appStartCurr>=g.startDate && appEndCurr <=g.endDate)  ){
+                      
+                    console.log(g.startDate," | ",appStart)
+                    console.log(g.endDate," |  ",appEnd)
+                      console.log("MATCH")
+                      found=g
+                    }
+                  })
+                  setTimeout(()=>{
+                      if(found!=null){
+                        console.log("FOUND,",found)
+                      }else{
+                        const roommate_group=new ApplicationRoommate({
+
+                        })
+                      }
+                  },600)
+                  
+                }else{
+
+                }
+
+                }              
+            })
+          })
+  }
+  setTimeout(()=>{
+    res.json({success:true,created:created})
+
+  },2000)
+})
+
+router.get("/generate-roommates",async(req,res)=>{
+  var app=await Application.findOne({$and:{"_id":req.params.id}})
+
+  var appStart= app.stay_start_date.split(" ")
+  var appEnd=app.stay_end_date.split(" ")
+  appStart=new Date(appStart[3],monthnum[months.indexOf(appStart[1])-1],appStart[2])
+  appEnd=new Date(appEnd[3],monthnum[months.indexOf(appEnd[1])-1],appEnd[2])
+
+  const appDates=getDatesArray2(appStart,appEnd)
+  var apps= await Application.find({
+    $or:[
+      {"application_status":"CHECKEDIN"},
+      {"application_status":"CONFIRMED"},
+      {"application_status":"CHECKEDOUT"},
+    ]
+  })
+  const created=[]
+  if(apps.length>0){
+   const timezone=  Intl.DateTimeFormat().resolvedOptions().timeZone
+  var cDate=new Date()
+  
+  const currDate=cDate.toString().substring(0,15)
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  
+apps.map((a)=>{
+
+            var st=a.stay_start_date.split(" ")
+            var et=a.stay_end_date.split(" ")
+            const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+            const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+            var activeDate=new Date(startDate)
+            startDate.setDate(startDate.getDate()-1)
+            endDate.setDate(endDate.getDate()+1)
+            var check=true         
+            const dates=getDatesArray2(startDate,endDate)
+            console.log(dates)
+            dates.map(async(d)=>{
+              const others=await BookedDate.find({$and:[{"date":d},{"application_id":{$ne:a._id}}]})
+              if(check && others.length>0 && appDates.includes(d)){
+                check=false
+                if(a.roommates==null || a.roommates.length==0){
+                const roomies=[]
+                others.map(async(o)=>{
+                    var otherApp=await Application.findOne({$and:[{"_id":o.application_id}]})
+                    if(otherApp!=null){
+                    console.log(otherApp.firstname+" is a roommate to "+a.firstname)
+                    roomies.push(otherApp.firstname+ " "+otherApp.lastname)
+                    const updateApp=await Application.updateOne({$and:[{"_id":a._id}]},{
+                      $push:{"roommates":otherApp}
+                    })
+                    const updateGroup=await Application.updateOne({$and:[{"_id":a._id}]},{
+                      $push:{"roommate_group":otherApp}
+                    })
+                    console.log(updateApp)
+                  }
+                })
+                setTimeout(()=>{
+                  if(roomies.length>0){
+                    created.push({roomies})
+                  }
+                },400)
+              }
+                
+              }
+            })
+          })
+  }
+  setTimeout(()=>{
+    res.json({success:true,created:created})
+
+  },2000)
+})
+
+
+router.get("/assign-roommate-group",async(req,res)=>{
+
+  var apps= await Application.find({
+    $and:[{"fullSuite":false},{$or:[
+      {"application_status":"CHECKEDIN"},
+      {"application_status":"CONFIRMED"},
+      {"application_status":"CHECKEDOUT"},
+    ]}]
+  })
+  const arr=[]
+  
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+
+
+  apps.map(async(a)=>{
+    if(a.roommate_group.length>0){
+    a.roommates.map(async(r)=>{
+      var other=await Application.find({$and:[{"_id":r._id}]})
+      other=other[0]
+      if(other!=null){
+        other.roommate_group.map((g)=>{
+          a.roommates.map((gg)=>{
+            if(gg==g){
+              console.log(a.stay_start_date,"  other:",other.stay_start_date)
+              console.log("MATCH")
+            }
+          })
+        })
+      }
+
+    })
+  }else{
+    if(a.roommates.length>0){
+      if(!arr.includes(a._id)){
+        arr.push(a._id)
+        
+      var st=a.stay_start_date.split(" ")
+      var et=a.stay_end_date.split(" ")
+      const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+      const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+      var check=true
+      var min=startDate
+      var i=1
+      var max=endDate
+      //console.log("\n",a.firstname+" ",a.stay_start_date,"  ",a.stay_end_date)
+      var ids=a.roommates.map(l=> {return l._id})
+    a.roommates.map(async(r)=>{
+      var otherApp=await Application.findOne({$and:[{"_id":r._id}]})
+      if(otherApp!=null){
+      var st=otherApp.stay_start_date.split(" ")
+      var et=otherApp.stay_end_date.split(" ")
+      const start=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+      const end=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+      min=Math.min(min,start)
+      max=Math.max(max,end)
+      //console.log(otherApp.firstname+" ",otherApp.stay_start_date,"  ",otherApp.stay_end_date)
+      }
+      
+    })
+    setTimeout(async()=>{
+      console.log("min:",new Date(min))
+      console.log("max:",new Date(max))
+      var already=await ApplicationRoommate.findOne({$and:[{"startDate":new Date(min)},{"endDate":new Date(max)}]})
+      console.log(already)
+      if(already==null){
+      var newGroups=new ApplicationRoommate({
+        startDate:new Date(min),
+        endDate:new Date(max),
+        roommates:[a]
+      })
+      var save=await newGroups.save()
+      setTimeout(async()=>{
+        a.roommates.map(async(r)=>{
+          arr.push(r._id)
+          const add=await ApplicationRoommate.updateOne({$and:[{"_id":save._id}]},{
+            $push:{"roommates":r}
+          })
+          console.log(add)
+          const updateR=await Application.updateOne({$and:[{"_id":r._d}]},{
+            $push:{"roommate_group":save._id}
+          })
+
+        })
+      },400)
+      console.log("null",already)
+    }
+
+    },1000)
+    
+    
+    console.log("\n\n")
+  }
+}
+
+  }
+  })
+  
+
+})
 
 router.post("/get-rooms-availability",async(req,res)=>{
   var arr=[]
@@ -1623,6 +1999,36 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
 })
 */
 
+router.get("/getActiveStatus2/:id",async(req,res)=>{
+  
+  var app= await Application.find({
+    $and:[
+      {"_id":req.params.id}
+    ]
+  })
+  app=app[0]
+  console.log(app)
+  if(app!=null){
+  const cDate=new Date()
+            const currDate=cDate.toString().substring(0,15)
+            var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+            "Aug","Sep","Oct","Nov","Dec"];
+            var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+            var st=app.stay_start_date.split(" ")
+            var et=app.stay_end_date.split(" ")
+           //active Date starts 1day before
+            const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
+            const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
+            var activeDate=new Date(startDate)
+            var nextnext=activeDate.setDate(cDate.getDate()+1)
+            activeDate=new Date(nextnext)
+            console.log("today:"+activeDate.toString().substring(0,15))
+            if(endDate>=new Date){
+              console.log("ACTIVE")
+            }
+  }
+})
+
 router.get("/getActiveStatus/:id",async(req,res)=>{
   var app= await Application.find({
     $and:[
@@ -1742,6 +2148,10 @@ router.post("/approve-booking/:id",async(req,res)=>{
  
   var appp=await Application.find({$and:[{"_id":req.params.id}]})
   appp=appp[0]
+  
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
   if(appp!=null){
     console.log(appp.application_staus)
     if(appp.application_status!="PAYEDANDAPPROVED" &&  appp.application_status!="CONFIRMED"){
@@ -1812,8 +2222,14 @@ router.post("/approve-booking/:id",async(req,res)=>{
                 var alreadyBooked=0
                 const prom2=new Promise(async(resolve2,reject2)=>{
                   //Insure no duplicate entries
+                  
+              var startBuffer=response.data.startBuffer.split(" ") 
+               var  endBuffer=response.data.endBuffer.split(" ")
+              startBuffer=new Date(startBuffer[3],monthnum[months.indexOf(startBuffer[1])-1],startBuffer[2])
+              endBuffer=new Date(endBuffer[3],monthnum[months.indexOf(endBuffer[1])-1],endBuffer[2])
                   const starter= new BookedDate({
                     application_id:req.params.id,
+                    dateObject:startBuffer,
                     date:response.data.startBuffer,
                     roomOne:app.roomOne,
                     roomTwo:app.roomTwo,
@@ -1827,9 +2243,14 @@ router.post("/approve-booking/:id",async(req,res)=>{
                     if(alreadybooked.length>0){
                       alreadyBooked++
                     }else{
+
+                      
+                   var  dateObject=o.date.split(" ")
+                    dateObject=new Date(dateObject[3],monthnum[months.indexOf(dateObject[1])-1],dateObject[2])
                       console.log("\n\nNEW BOOKED")
                       const newBooked= new BookedDate({
                         application_id:req.params.id,
+                        dateObject:dateObject,
                         date:o.date,
                         fullSuite:app.fullSuite,
                         roomOne:app.roomOne,
@@ -1844,6 +2265,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
                   })
                   const ender= new BookedDate({
                     application_id:req.params.id,
+                    dateObject:endBuffer,
                     date:response.data.endBuffer,
                     fullSuite:app.fullSuite,
                     roomOne:app.roomOne,
@@ -1915,8 +2337,12 @@ router.post("/approve-booking/:id",async(req,res)=>{
                   var alreadyBookedEnd=await BookedDate.find({$and:[{"date":e.toString().substring(0,15)},{"application_id":req.params.id}]})
              
                   if(alreadyBookedStart[0]==null && s!=null){
+                    const dateObject=s.date.split(" ")
+                    dateObject=new Date(dateObject[3],monthnum[months.indexOf(dateObject[1])-1],dateObject[2])
+
                     const newBookedStart= new BookedDate({
                       application_id:req.params.id,
+                      dateObject:dateObject,
                       date:s,
                       fullSuite:app.fullSuite,
                       roomOne:app.roomOne,
@@ -1942,9 +2368,13 @@ router.post("/approve-booking/:id",async(req,res)=>{
                         alreadyBooked++
                       }else{
                         console.log("\n\nNEW BOOKED")
+                        
+                    const dateObject=o.date.split(" ")
+                    dateObject=new Date(dateObject[3],monthnum[months.indexOf(dateObject[1])-1],dateObject[2])
                        const newBooked= new BookedDate({
                           application_id:req.params.id,
                           date:o.date,
+                          dateObject:dateObject,
                           fullSuite:app.fullSuite,
                           roomOne:app.roomOne,
                           roomTwo:app.roomTwo,
@@ -1959,9 +2389,13 @@ router.post("/approve-booking/:id",async(req,res)=>{
                  
                   setTimeout(async()=>{
                     if(alreadyBookedEnd[0]==null && e!=null){
+                      
+                    const dateObject=e.split(" ")
+                    dateObject=new Date(dateObject[3],monthnum[months.indexOf(dateObject[1])-1],dateObject[2])
                       const newBookedEnd= new BookedDate({
                         application_id:a._id,
                         date:e,
+                        dateObject:dateObject,
                         fullSuite:app.fullSuite,
                         roomOne:app.roomOne,
                         roomTwo:app.roomTwo,
@@ -3165,6 +3599,10 @@ router.get("/roommate-diagram",async(req,res)=>{
       if(a.roommates!=null){
       try{
       const add={
+        hasRoommmate:a.roommates[0]!=null? true:false,
+        hasRoommmate1:a.roommates[1]!=null? true:false,
+        hasRoommmate2:a.roommates[2]!=null? true:false,
+
         startDate:a.startDate,
         endDate:a.endDate,
         roommate:a.roommates[0],
@@ -3205,8 +3643,142 @@ router.get("/roommate-diagram",async(req,res)=>{
   */
 }
   setTimeout(()=>{
-    res.json({success:true,rooms:rooms})
+    res.json({success:true,length:rooms.length,rooms:rooms})
   },500)
+})
+
+router.get("/generate-groups",async(req,res)=>{
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  const checkedAll=[]
+  const apps=await Application.find({$and:[{"fullsuite":false},{$or:[{"application_status":"CONFIRMED"},{"application_status":"PAYEDANDAPPROVED"},{"application_status":"CHECKEDIN"},{"application_status":"CHECKEDOUT"}]}]})
+    apps.map(async(a)=>{
+      const checked=[]
+        const rommates=[]
+      var end=a.stay_end_date.split(" ")
+      end=new Date(end[3],monthnum[months.indexOf(end[1])-1],end[2])
+      end.setDate(end.getDate()+1)
+      var start=a.stay_start_date.split(" ")
+      start=new Date(start[3],monthnum[months.indexOf(start[1])-1],start[2])
+      const group=await ApplicationRoommate.findOne({$and:[{"startDate":{$lte:start}},{"endDate":{$gte:end}}]})
+      console.log(group)
+      if(group!=null){
+        const update=await Application.updateOne({$and:[{"_id":a._id}]},{
+          $push:{"roommate_group":group._id}
+        })
+      }
+    })
+})
+
+router.get("/roommate-group",async(req,res)=>{
+  const booked=await BookedDate.find({$and:[{"fullsuite":false}]})
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  const checkedAll=[]
+  const apps=await Application.find({$and:[{"fullsuite":false},{$or:[{"application_status":"CONFIRMED"},{"application_status":"PAYEDANDAPPROVED"},{"application_status":"CHECKEDIN"},{"application_status":"CHECKEDOUT"}]}]})
+    apps.map(async(a)=>{
+      const checked=[]
+        const rommates=[]
+      var end=a.stay_end_date.split(" ")
+      end=new Date(end[3],monthnum[months.indexOf(end[1])-1],end[2])
+      end.setDate(end.getDate()+1)
+      var start=a.stay_start_date.split(" ")
+      start=new Date(start[3],monthnum[months.indexOf(start[1])-1],start[2])
+      start.setDate(start.getDate()-1)
+      if(end>=new Date()){
+        const dates=getDatesArray2(start,end)
+        const my_booked=await BookedDate.find({$and:[{"application_id":a._id}]})
+        dates.map(async(d)=>{
+          var room={}
+          const shared=await BookedDate.find({$and:[{"fullSuite":false},{"application_id":{$ne:a._id}},{"date":d}]})
+         
+
+        if(shared.length>0){
+          try{
+            
+          const otherDates=shared.map((d)=>{
+            var aMin=d.date.split(" ")
+            var a=new Date(aMin[3],monthnum[months.indexOf(aMin[1])-1],aMin[2])
+            return a
+          })
+          console.log(otherDates)
+
+          shared.map(async(s)=>{
+            if(!checked.includes(s.application_id)){
+              checked.push(s.application_id)
+              var app=await Application.findOne({$and:[{"_id":s.application_id}]})
+              if(app.roomOne){
+                room.roommate=app
+              }
+              if(app.roomTwo){
+                room.roommate1=app
+              }
+              if(app.roomThree){
+                room.roommate2=app
+              }
+            }
+          })
+
+          }catch(err){
+            console.log(err)
+          }
+
+          setTimeout(()=>{
+            checkedAll.push(a._id)
+            if(a.roomOne){
+              room.roommate=app
+            }
+            if(a.roomTwo){
+              room.roommate1=app
+            }
+            if(a.roomThree){
+              room.roommate2=app
+            }
+          },400)
+         /* var othersMin=otherDates.reduce(function(a,b){
+            
+         // console.log("bb",bb)
+            var aMin=a.split(" ")
+            var bMin=b.split(" ")
+            aMin=new Date(aMin[3],monthnum[months.indexOf(aMin[1])-1],aMin[2])
+            bMin=new Date(bMin[3],monthnum[months.indexOf(bMin[1])-1],bMin[2])
+            var aaa=new Date()
+            var bbb=new Date()
+             aaa.setMilliseconds(aMin)
+             bbb.setMilliseconds(bMin)
+            return aMin<bMin? aMin:bMin
+        })
+        var othersMax=otherDates.reduce(async function(a,b){
+          
+
+          var aMin=a.split(" ")
+          var bMin=b.split(" ")
+          aMin=new Date(aMin[3],monthnum[months.indexOf(aMin[1])-1],aMin[2])
+          bMin=new Date(bMin[3],monthnum[months.indexOf(bMin[1])-1],bMin[2])
+          console.log("aMin",aMin)
+          console.log("bMin",bMin)
+
+          var aaa=new Date()
+          var bbb=new Date()
+           aaa.setMilliseconds(aMin)
+           bbb.setMilliseconds(bMin)
+          // console.log(bbb)
+          return aMin<bMin? aMin:bMin
+          
+      })
+      */
+      
+      //console.log("others min",new Date(othersMin))
+      //console.log("others max",new Date(othersMax))
+      
+        checkedAll.push(a._id)
+
+      }
+    })
+  }
+  })
 })
 
 router.get("/fix-roommates",async(req,res)=>{

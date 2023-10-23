@@ -135,7 +135,7 @@ console.log("\n\n\n"+req.params.id+"\n\n\n")
           line_items:items,
           mode:"payment",
           success_url:"https://ghanahomerental.onrender.com/payment/success/"+id,
-          cancel_url:"https://ghanahomerental.onrender.com/payment/cancel"
+          cancel_url:"https://ghanahomerental.onrender.com/payment/cancel/"+id
         })
        try{ 
         console.log(session.url)

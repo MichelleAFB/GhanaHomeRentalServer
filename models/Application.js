@@ -176,6 +176,9 @@ const applicationSchema=new mongoose.Schema({
     
   },charges:{
     type: Object
+  },
+  roommates:{
+    type:Array
   }
 
 
