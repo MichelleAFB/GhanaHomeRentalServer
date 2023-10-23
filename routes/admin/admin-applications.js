@@ -1587,7 +1587,18 @@ router.get("/checkAvailability/:id",async(req,res)=>{
   })
 
 */
-
+router.get("/check-nov",async(req,res)=>{
+  const apps=await Application.find({"application_status":"CONFIRMED"})
+  apps.map((a)=>{
+    try{
+      if(a.stay_start_date.includes("Nov")){
+        res.json(a)
+      }
+    }catch(err){
+      console.log(err)
+    }
+  })
+})
 router.get("/fillRooms",async(req,res)=>{
   const empty=await BookedDate.find({$and:[{"roomThree":null}]})
   console.log(empty.length)
@@ -2222,7 +2233,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
                 var alreadyBooked=0
                 const prom2=new Promise(async(resolve2,reject2)=>{
                   //Insure no duplicate entries
-                  
+                  console.log(response.data)
               var startBuffer=response.data.startBuffer.split(" ") 
                var  endBuffer=response.data.endBuffer.split(" ")
               startBuffer=new Date(startBuffer[3],monthnum[months.indexOf(startBuffer[1])-1],startBuffer[2])
@@ -2337,7 +2348,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
                   var alreadyBookedEnd=await BookedDate.find({$and:[{"date":e.toString().substring(0,15)},{"application_id":req.params.id}]})
              
                   if(alreadyBookedStart[0]==null && s!=null){
-                    const dateObject=s.date.split(" ")
+                    var dateObject=s.split(" ")
                     dateObject=new Date(dateObject[3],monthnum[months.indexOf(dateObject[1])-1],dateObject[2])
 
                     const newBookedStart= new BookedDate({
@@ -2369,7 +2380,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
                       }else{
                         console.log("\n\nNEW BOOKED")
                         
-                    const dateObject=o.date.split(" ")
+                    var dateObject=o.date.split(" ")
                     dateObject=new Date(dateObject[3],monthnum[months.indexOf(dateObject[1])-1],dateObject[2])
                        const newBooked= new BookedDate({
                           application_id:req.params.id,
@@ -2390,7 +2401,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
                   setTimeout(async()=>{
                     if(alreadyBookedEnd[0]==null && e!=null){
                       
-                    const dateObject=e.split(" ")
+                    var dateObject=e.split(" ")
                     dateObject=new Date(dateObject[3],monthnum[months.indexOf(dateObject[1])-1],dateObject[2])
                       const newBookedEnd= new BookedDate({
                         application_id:a._id,
@@ -2478,7 +2489,42 @@ router.post("/approve-booking/:id",async(req,res)=>{
 }
 })
 
+router.get("/blocked-fullsuite",async(req,res)=>{
+  const allDates=[]
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  const checkedAll=[]
+  const arr=[]
+  const apps=await Application.find({$and:[{"fullsuite":true},{$or:[{"application_status":"CONFIRMED"},{"application_status":"PAYEDANDAPPROVED"},{"application_status":"CHECKEDIN"},{"application_status":"CHECKEDOUT"}]}]})
+  if(apps.length>0){
+  apps.map(async(a)=>{
+    if(a.fullSuite){
+      
+    var start=a.stay_start_date.split(" ")
+    start=new Date(start[3],monthnum[months.indexOf(start[1])-1],start[2])
+    start.setDate(start.getDate()-1)
+    var end=a.stay_end_date.split(" ") 
+    console.log(a.stay_end_date)
+    end= new  Date(end[3],monthnum[months.indexOf(end[1])-1],end[2])
+    console.log(end)
+    const dates=getDatesArray(start,end)
+    allDates.concat(dates)
+    end.setDate(end.getDate()+1)
+      if(end>=new Date()){
+        arr.push({startDate:start,endDate:end,color:"black",label:"fullSuite",application:a,})
 
+      }
+      
+    }
+  })
+  setTimeout(()=>{
+    res.json({success:true,blocked:arr, dates:allDates})
+  },500)
+}else{
+  res.json({success:true,blocked:arr})
+}
+})
 
 router.get("/allBookedDates",async(req,res)=>{
   const booked=await BookedDate.find({})
@@ -3678,6 +3724,7 @@ router.get("/roommate-group",async(req,res)=>{
   var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
   const checkedAll=[]
   const apps=await Application.find({$and:[{"fullsuite":false},{$or:[{"application_status":"CONFIRMED"},{"application_status":"PAYEDANDAPPROVED"},{"application_status":"CHECKEDIN"},{"application_status":"CHECKEDOUT"}]}]})
+
     apps.map(async(a)=>{
       const checked=[]
         const rommates=[]
