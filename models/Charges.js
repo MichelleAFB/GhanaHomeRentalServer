@@ -32,6 +32,22 @@ const chargeSchema=new mongoose.Schema({
     type:Object
   },created:{
     type:Date
+  },
+  paid:{
+    type:Boolean
+  },
+  payment_method_details:{
+    type:Object
+  },
+  billing_details:{
+    type:Object
+  },
+  refunded:{
+    type:Boolean,
+    default:false
+  },
+  status:{
+    type:String
   }
 })
 

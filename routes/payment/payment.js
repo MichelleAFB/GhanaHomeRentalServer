@@ -15,6 +15,7 @@ const { reject } = require('lodash');
 const process=require("process")
 const strip=require('stripe')(process.env.STRIP_LIVE_SECRET_KEY)
 const dotenv = require("dotenv").config({path:"../../config/.env"})
+const{ Charge}=require("../../models/Charges");
 
 const connectdb = async () => {
   try {
@@ -183,6 +184,102 @@ console.log("\n\n\n"+req.params.id+"\n\n\n")
   })
 })
 
+
+router.get("/charges",async(req,res)=>{
+  const arr=[]
+  const charges=await strip.checkout.sessions.list({})
+  console.log(charges.data.length)
+  charges.data.map(async(c)=>{
+    if(c.url!=null){
+      const app=await Application.findOne({"paymentSessionUrl":c.url})
+      console.log(app)
+      if(app!=null){
+      var charge=await strip.charges.list({
+        "payment_intent":c.url
+      })
+      if(charge!=null){
+        console.log(charge)
+        arr.push({application:app,charge:charge})
+      }
+    }
+    }
+  })
+
+setTimeout(()=>{
+     res.json({length:charges.data.length.length,charges:arr})
+
+},1000)
+})
+router.get("/invoices",async(req,res)=>{
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+
+  const charges=await strip.charges.list({})
+  const apps=await Application.find({$and:[{$exist:"datePaid"}]})
+  if(apps!=null){
+  apps.map((a)=>{
+    if(a.datePaid!=null){
+    console.log(a.datePaid)
+  // var date=a.datePaid.split(" ")
+   // date=new Date(date[3],monthnum[months.indexOf(date[1])-1],date[2])
+
+    charges.data.map(async(c)=>{
+      const cdate=new Date()
+      cdate.setSeconds(c.created)
+      var formatted=cdate.toString().substring(0,15).replace("2077","2023")
+      //console.log(formatted)
+      console.log(formatted,a.datePaid.toString().substring(0,15))
+      if(formatted==a.datePaid.toString().substring(0,15)){
+        console.log("MATCH:",formatted,a.datePaid.toString().substring(0,15))
+
+      }
+
+    })
+    
+  }
+  })
+}
+  
+  res.json(charges)
+})
+router.get("/client-payments",async(req,res)=>{
+  console.log("hi")
+  const apps=await Application.find({$and:[{"paymentSessionUrl":{$ne:null}}]})
+  const arr=[]
+  apps.map(async(a)=>{
+    const charge=await Charge.findOne({"application_Id":a._id})
+    if(charge!=null){
+    arr.push({charge:charge,application:a})
+    
+     const sessions=await strip.checkout.sessions.list({})
+      sessions.data.map(async(s)=>{
+    if(s.payment_intent!=null){
+      var newCharge=await strip.charges.list({
+        "payment_intent":charge.payment_intent
+      })
+      if(newCharge!=null && a.paymentSessionUrl==s.url){
+
+         var created=new Date()
+    
+          console.log(Object.keys(newCharge.data[0]))
+          const update=await Charge.updateOne({$and:[{"chargeId":newCharge.id}]},{
+            $set:{"billing_details":newCharge.data[0].billing_details}
+          })
+          console.log(update)
+          arr.push({app:a,charge:newCharge.data[0].billing_details})
+        
+      }
+      
+  }     
+    })
+  }
+    
+  })
+  setTimeout(()=>{
+    res.json({length:arr.length,charges:arr,success:true})
+  },2000)
+})
 
 router.get("/checkPaymentDue/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");

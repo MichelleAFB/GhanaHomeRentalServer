@@ -537,7 +537,7 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
 
     } else  if(req.params.status=="PAYEDANDAPPROVED"){
       var currDate=new Date()
-      currDate=currDate.toString().substring(0,15)
+      //currDate=currDate.toString().substring(0,15)
       
         const application=await Application.updateOne(
           {"_id":req.params.id},
@@ -734,11 +734,52 @@ function getDatesArray2(start, end) {
   return arr;
 };
 
-router.get("/text/:id",async(req,res)=>{
-  const app=await Application.findOne({$and:[{"_id":req.params.id}]})
-  const find=await ApplicationRoommate.find({
-    "roommates":{$elemMatch:{"_id":req.params.id}}})
-    console.log(find)
+router.get("/booked-date/:id",async(req,res)=>{
+  
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  console.log(req.params.id)
+  const id=req.params.id
+  const app=await Application.find({$and:[{"_id":req.params.id}]})
+  const apps=await BookedDate.find({$and:[{"application_id":req.params.id}]})
+  console.log("apps",apps)
+  if(apps.length==0){
+  axios.get(`http://localhost:3012/admin-applications/allBookingDatesForApplication/${id.toString()}`).then(async(response)=>{
+   // console.log(response)
+  const data=response.data
+    const startBuffer=await BookedDate.findOne({$and:[{"application_id":req.params.id},{"date":data.startBuffer}]})
+    const endBuffer=await BookedDate.findOne({$and:[{"application_id":req.params.id},{"date":data.endBuffer}]})
+    if(startBuffer==null){
+      console.log("startBuffer",startBuffer)
+    }
+    if(endBuffer){
+      console.log("endBuffer",endBuffer)
+    }
+    console.log(endBuffer)
+    const dates=response.data.booked_dates
+    dates.map(async(b)=>{
+      const date=await BookedDate.findOne({$and:[{"application_id":req.params.id},{"date":b.date}]})
+      console.log(b.date)
+      if(date==null){
+        console.log("DATE NULL")
+        var day=b.date.split(" ")
+            day=new Date(appStart[3],monthnum[months.indexOf(appStart[1])-1],appStart[2])
+
+        const booked=new BookedDate({
+          application_id:app._id,
+          date:b.date,
+          dateObject:day,
+          roomOne:app.roomOne,
+          roomTwo:app.roomTwo,
+          roomThree:app.roomThree,
+          fullSuite:app.fullSuite
+        })
+        console.log(booked)
+      }
+    })
+  })
+}
 })
 
 router.get("/get-min-and-max-dates/:id",async(req,res)=>{
@@ -749,6 +790,7 @@ router.get("/get-min-and-max-dates/:id",async(req,res)=>{
   var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
   "Aug","Sep","Oct","Nov","Dec"];
   var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+
   
   var appStart= app.stay_start_date.split(" ")
   var appEnd=app.stay_end_date.split(" ")
@@ -765,11 +807,12 @@ router.get("/get-min-and-max-dates/:id",async(req,res)=>{
   var max
   var minDate
   var maxDate
-
+  console.log(dates)
   const already=[app._id]
   const apps=[app]
   dates.map(async(d)=>{
     var booked=await BookedDate.find({"dateObject":d})
+    console.log(booked.length)
     if(booked.length>0){
     booked.map(async(d)=>{
      
@@ -2704,8 +2747,8 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
 //calulate all booked dates for an application
 router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
-
-  var app=await Application.find({$and:[{"_id":req.params.id}]})
+  console.log("hello:"+req.params.id.toString())
+  var app=await Application.find({$and:[{"_id":req.params.id.toString()}]})
   if(app!=null){
   app=app[0]
   var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
@@ -3631,6 +3674,9 @@ router.get("/set-roommate/:id/:roommate",async(req,res)=>{
   })
 })
 router.get("/roommate-diagram",async(req,res)=>{
+  const rooms=[]
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/format-find-dates").then(async(response)=>{
+
   const arr=[]
   const apps=await ApplicationRoommate.find({})
   //console.log(apps)
@@ -3662,6 +3708,13 @@ router.get("/roommate-diagram",async(req,res)=>{
       }}
 
     })
+  }
+    
+  setTimeout(()=>{
+    res.json({success:true,length:rooms.length,rooms:rooms})
+  },500)
+  })
+  
     /*
   apps.map(async(a)=>{
     
@@ -3687,10 +3740,7 @@ router.get("/roommate-diagram",async(req,res)=>{
     }
   })
   */
-}
-  setTimeout(()=>{
-    res.json({success:true,length:rooms.length,rooms:rooms})
-  },500)
+
 })
 
 router.get("/generate-groups",async(req,res)=>{
