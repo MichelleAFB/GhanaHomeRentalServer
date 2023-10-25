@@ -1482,6 +1482,28 @@ router.post("/setStatus/:id/:status",async(req,res)=>{
           res.json({success:false,no_applications:0})
         }
       
+    }    else  if(req.params.status=="NEEDS_REFUND"){
+      var currDate=new Date()
+      currDate=currDate.toString().substring(0,15)
+      
+        const application=await Application.updateOne(
+          {"_id":req.params.id},
+          {$set:{
+            "application_status":req.params.status,
+            "notify_admin":1,
+            "notify_applicant":1,
+            "notify_applicant_message":req.body.message,
+            "notify_admin_message":req.body.message,
+          }}
+        )
+        const updatedApp=await Application.find({$and:[{"_id":req.params.id}]})
+        console.log(application)
+        if(application.acknowledged==true){
+          res.json({success:true,no_applications:application.matchedCount,application:updatedApp})
+        }else{
+          res.json({success:false,no_applications:0})
+        }
+      
     }
     else if(req.params.status=="CHECKEDOUT"){
       var currDate=new Date()

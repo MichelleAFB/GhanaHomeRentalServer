@@ -179,6 +179,12 @@ const applicationSchema=new mongoose.Schema({
   },
   roommates:{
     type:Array
+  },needsRefund:{
+    type:Boolean,
+    default:false
+  },
+  dateNeedsRefund:{
+    type:Date
   }
 
 

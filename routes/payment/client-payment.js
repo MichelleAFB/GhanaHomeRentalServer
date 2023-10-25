@@ -426,7 +426,29 @@ router.get("/switch",async(req,res)=>{
 })
 
 
+router.post("/needs-refund/booking-failed/:id",async(req,res)=>{
+  const app=await Application.findOne({$and:[{"_id":req.params.id}]})
+  if(app!=null){
+    const update=await Application.updateOne({$and:[{"_id":req.params.id}]},{
+      $set:{"needsRefund":true,"dateNeedsRefund":new Date()}
+    })
+    var currDate=new Date()
+    axios.post("https://ghanahomestayserver.onrender.com/client-applications/setStatus/"+req.params.id+"/NEEDS_REFUND/",{message:"Refund needed for application because payment was recieved but could not book on  "+currDate}).then((response)=>{
+      console.log(response)
+      if(update.acknowledged){
+        res.json({success:true,update:update})
+      }else{
+        res.json({success:false,update:update})
+  
+      }
 
+    })
+    
+  }else{
+    res.json({success:false,err:"Application "+req.params.id+" does not exist"})
+
+  }
+})
 
 module.exports=router
 
