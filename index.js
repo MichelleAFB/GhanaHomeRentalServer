@@ -44,17 +44,23 @@ const env=process.env.NODE_ENV
 const strip=require('stripe')(process.env.STRIP_KEY)
 const new_db_config=require("./config/newdb")
 //const process=require("pm2")
+const numCPUs = require('os').cpus().length;
+
 
 var cluster = require('cluster');
 if (cluster.isMaster) {
-  cluster.fork();
+  for (let i = 0; i < numCPUs; i++) {
+    cluster.fork();
+  }
 
   cluster.on('exit', function(worker, code, signal) {
+    console.log(`worker ${worker.process.pid} died`);
+
     cluster.fork();
   });
 }
 
-if (cluster.isWorker) {
+else if (cluster.isWorker) {
   
 
 const app=express()
