@@ -2113,10 +2113,12 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                 if((cDate>=startDate && cDate<=endDate) && (activeDate>=startDate && activeDate<=endDate) &&app.currentlyOccupied!=1){
                   console.log("confirmed and in range:CHANGE TO ACTUVE")
                    const update=await Application.updateOne({"_id":req.params.id},{
-                    $set:[{"currentlyOccupied":1}]
+                    $set:{"currentlyOccupied":1}
                    })
                    console.log(update)
-                   res.json({success:true,currentlyOccupied:true})
+                   app=await Application.findOne({$and:[{"_id":req.params.id}]})
+
+                   res.json({success:true,currentlyOccupied:true,app:app})
                 }else if((cDate>=startDate && cDate<=endDate) && (activeDate>=startDate && activeDate<=endDate) &&app.currentlyOccupied==1){
                   res.json({success:true,currentlyOccupied:true})
 
@@ -2126,11 +2128,12 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                   console.log("current date is adter end date:"+(cDate>endDate))
                    if(cDate>endDate &&  (activeDate>=startDate && activeDate<=endDate)  ){
                   console.log("confirmed but but person forgot to checkout")
-                 axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
+                 axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then(async(response)=>{
                   console.log(response.data)
                     if(response.data.success){
                       console.log(app.stay_start_date+" changed to checkout by force")
-                      res.json({success:true,currentlyOccupied:false})
+                       app=await Application.findOne({$and:[{"_id":req.params.id}]})
+                      res.json({success:true,currentlyOccupied:false,app:app})
                     }else{
                      res.json({success:false,message:"could not change status"})
                     }
@@ -2144,17 +2147,19 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                  try{
                    const update=await Application.updateOne(
                     {"_id":req.params.id},{
-                      $set:[
+                      $set:
                         {"currentlyOccupied":0}
-                      ]
+                      
                     })
                     console.log("herher")
 
-                    axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then((response)=>{
+                    axios.post("https://ghanahomestayserver.onrender.com/admin-applications/setStatus/"+app._id+"/CHECKEDOUT/",{message:"Occupants might have forgotten to checkout. Updated application status to checkedout on "+currDate}).then(async(response)=>{
                       console.log(response.data)
                       if(response.data.success){
                         console.log(app.stay_start_date+" changed to checkout by force")
-                        res.json({success:true,currentlyOccupied:false,application:response.data.application})
+                        app=await Application.findOne({$and:[{"_id":req.params.id}]})
+
+                        res.json({success:true,currentlyOccupied:false,app:app})
                       }else{
                        res.json({success:false,message:"could not change status"})
                       }
@@ -2172,9 +2177,9 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
 
                   const update=await Application.updateOne(
                     {"_id":req.params.id},{
-                      $set:[
+                      $set:
                         {"currentlyOccupied":0}
-                      ]
+                      
                     })
 
 
@@ -2185,14 +2190,11 @@ router.get("/getActiveStatus/:id",async(req,res)=>{
                 const update=await Application.updateOne({"_id":req.params.id},{
                   $set:{"currentlyOccupied":0}
                 })
-                const app=await Application.find({$and:[{"_id":req.params.id}]})
-                  res.json({success:true,currentlyOccupied:false,app:app,updated:update})
+                app=await Application.findOne({$and:[{"_id":req.params.id}]})
+                res.json({success:true,currentlyOccupied:false,app:app,updated:update})
               }else{
                 res.json({success:true,currentlyOccupied:false})
               }
-              
-      
-
             })
 })
 
