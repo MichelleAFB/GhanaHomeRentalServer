@@ -17,6 +17,7 @@ const {BookedDate}=require('../../models/BookedDates')
 const{BlockedDate}=require("../../models/BlockedDates");
 const e = require("express");
 const { ApplicationRoommate } = require("../../models/ApplicationRoommates");
+const { id } = require("prelude-ls");
 
 
 router.use(bodyParser.json());
@@ -2496,6 +2497,7 @@ router.post("/approve-booking/:id",async(req,res)=>{
                       console.log("Already updated")
                       //console.log(checkApp)
                       const alldays=await BookedDate.find({$and:[{"application_id":req.params.id}]})
+                      //TODO:check and create roommate-group
                       res.json({success:true,approved:true,conflicting_dates:conflicting_dates,paid:response.data.paid,no_booked:alreadyBooked+indLength,booked_dates:alldays})
                     }
                   
@@ -2530,6 +2532,133 @@ router.post("/approve-booking/:id",async(req,res)=>{
 }else{
   res.json({success:false,err:"no user"})
 }
+})
+
+
+
+router.post("/check-and-create-roommate-group/:id",async(req,res)=>{
+  const app=await Application.findOne({$and:[{"_id":req.params.id}]})
+  
+  var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
+  "Aug","Sep","Oct","Nov","Dec"];
+  var monthnum=["01","02","03","04","05","06","07","08","09","10","11","12"]
+  if(app!=null){
+    
+      
+    var start=app.stay_start_date.split(" ")
+    start=new Date(start[3],monthnum[months.indexOf(start[1])-1],start[2])
+    var end=app.stay_end_date.split(" ") 
+    end= new  Date(end[3],monthnum[months.indexOf(end[1])-1],end[2])
+    const dates=getDatesArray2(start,end)
+    var endBuffer=new Date()
+    var startBuffer=new Date()
+    var max=end
+    var min=start
+    endBuffer.setDate(end.getDate()+30)
+    startBuffer.setDate(end.getDate()-30)
+    var ourGroup
+    var groupExist
+    var roommateExist=[]
+    var check=true
+    const s=new Date()
+    var i=1
+    console.log(app)
+    dates.map(async(d)=>{
+      i++
+      if(check==true){
+        
+      const groups=await ApplicationRoommate.find({$and:[{"startDate":{$lte:d}},{"endDate":{$gte:d}}]})
+      try{
+        if(groups.length>0){
+          check=false
+          console.log("FOUND")
+          groupExist=groups
+       ourGroup= groups.filter((g)=>{
+          var group=g.roommates.filter((r)=>{
+            var newMin=r.stay_start_date.split(" ")
+            newMin=new Date(newMin[3],monthnum[months.indexOf(newMin[1])-1],newMin[2])
+            var newMax=r.stay_end_date.split(" ")
+            newMax=new Date(newMax[3],monthnum[months.indexOf(newMax[1])-1],newMax[2])
+
+
+            if(min==null){
+
+              min=newMin
+            }else{
+              if(min>newMin){
+                min=newMin
+              }
+            }
+            if(max==null){
+
+              max=newMax
+
+            }else{
+              if(max<newMax){
+                max=newMax
+              }
+            }
+            if(r._id==req.params.id){
+              roommateExist.push({application:r,group:g._id})
+              return r
+            }
+          })
+        }) 
+          
+        
+      }
+     
+
+      }catch(err){
+          console.log(err)
+      }
+    }
+    })
+
+    setTimeout(async()=>{
+      console.log("i",i,"length:",dates.length,groupExist)
+      if(groupExist==null || groupExist.length==0){
+        console.log("CREATE NEW GROUP")
+         const newGroup=new ApplicationRoommate({
+              startDate:start,
+              endDate:end,
+              roommates:[app],
+              endDateString:end.toString().substring(0,15),
+              startDateString:start.toString().substring(0,15)
+            })
+            console.log(newGroup)
+           const saved=await newGroup.save()
+            console.log(saved)
+            res.json({success:true,group:saved})
+        
+      }else{
+        if( roommateExist.length>0){
+                  console.log("ROOMMATE ALREADY EXIST",roommateExist)
+                res.json({success:true,group:groupExist[0]})
+
+        }else{
+          
+          console.log("max:",max,"min:",min)
+          console.log(groupExist[0]._id)
+          const updateGroup=await ApplicationRoommate.updateOne({$and:[{"_id":groupExist[0]._id}]},{
+            $set:{"startDate":min,"endDate":max,"startDateString":min.toString().substring(0,15),"endDateString":max.toString().substring(0,15)}
+          })
+          const updateGroupRooms=await ApplicationRoommate.updateOne({$and:[{"_id":groupExist[0]._id}]},{
+            $push:{"roommates":app}
+          })
+          const getGroup=await ApplicationRoommate.findOne({$and:[{"_id":groupExist[0]._id}]})
+            res.json({success:true,group:getGroup})
+        }
+      }
+    },1000)
+
+    
+    
+
+  }else{
+    res.json({success:false,message:"application "+ req.params.id+" does not exist."})
+
+  }
 })
 
 router.get("/blocked-fullsuite",async(req,res)=>{
@@ -4523,6 +4652,7 @@ router.get("/set-roommates-group",(async(req,res)=>{
   } 
 
 ))
+
 router.get("/set-roommates",async(req,res)=>{
 axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roommates-2").then(async(response)=>{
   const apps=response.data.dates
@@ -4570,6 +4700,7 @@ axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roommates
   },700)
 })
 })
+
 
 router.get("/booked-dates-all",async(req,res)=>{
   const apps=await Application.find({$and:[{"approved":1},{"fullSuite":false}]})
@@ -4628,10 +4759,11 @@ router.get("/format-find-dates",(req,res)=>{
         setTimeout(()=>{
           console.log("here")
           axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roomsAvailable").then((response2)=>{
-            console.log(response2.data)
-            console.log(response2.data.room_string_dates[0] instanceof Object)
-            console.log(response2.data.room_string_dates[0].toString() instanceof Object,response2.data.room_string_dates[0].toString())
           var goodStrings=response2.data.room_string_dates.toString() instanceof String? response2.data.room_string_dates: response2.data.room_string_dates[0]
+          const arr=[]
+
+          
+
 
             res.send({time:(new Date())-start,success:true,allDates:dates,dates:response.data.allDates,dateString:dateString,room_dates:response2.data.room_dates, room_string_dates:goodStrings,room_string_string:response2.data.room_string_strings})
           })
@@ -4646,6 +4778,73 @@ router.get("/format-find-dates",(req,res)=>{
     }
     }
   })
+})
+
+router.get("/group",async(req,res)=>{
+  axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roomsAvailable").then((response2)=>{
+          var goodStrings=response2.data.room_string_dates.toString() instanceof String? response2.data.room_string_dates: response2.data.room_string_dates[0]
+          const arr=[]
+  const correct=response2.data.room_dates
+          const room_dates=[]
+          const roomDs=[]
+          correct.map((c)=>{
+            const datesArr=getDatesArray2(new Date(c.startDate),new Date(c.endDate))
+            var maxShared
+            datesArr.map(async(d)=>{
+              //console.log(d)
+              if(!arr.includes(d)){
+                  arr.push(d)
+              }else{
+                const shared=await BookedDate.find({$and:[{"date":d}]})
+                if(maxShared==null){
+                  maxShared=shared
+                }else{
+                  if(shared.length>maxShared.length){
+                    maxShared=shared
+                  }
+                }
+                //console.log("SHARED:",shared)
+              }
+            })
+            setTimeout(()=>{
+              const newArr=[]
+             // console.log("FINALMAX:",maxShared)
+              if(maxShared!=null){
+                var min
+                var max
+                if(maxShared[0].date.includes("Nov")){
+                  maxShared.map(async(m)=>{
+                    const bookedMin=await BookedDate.findOne({$and:[{"application_id":m.application_id},{$min:"dateObject"}]})
+                    const bookedMax=await BookedDate.findOne({$and:[{"application_id":m.application_id},{$max:"dateObject"}]})
+                    if(min==null) {min=bookedMin.dateObject}else{
+                      if(min>bookedMin.dataObject){
+                        min=bookedMin.dateObject
+                      }
+                    }
+                    if(max==null) {max=bookedMax.dateObject}else{
+                      if(max<bookedMax.dateObject){
+                        max=bookedMax.dateObject
+                      }
+                    }
+
+                  })
+
+                  setTimeout(()=>{
+                      console.log("min,",min)
+                      console.log("max,",max)
+                  },500)
+                 /* console.log(maxShared)
+                  const max= maxShared.reduce(function (a, b) {return new Date(a.dateObject)> new Date(b.dateObject)  ? a : b; });
+                  console.log(max) 
+                  const min= maxShared.reduce(function (a, b) {return new Date(a.dateObject)< new Date(b.dateObject)  ? a : b; });
+                  console.log(min) 
+                  */
+                }
+              }
+            },500)
+
+          })
+        })
 })
 router.get("/sort-unavailable",(req,res)=>{
   var oldDates=[]
@@ -4811,7 +5010,9 @@ function getDatesArray(start, end) {
   for(var arr=[],dt=new Date(start); dt<=new Date(end); dt.setDate(dt.getDate()+1)){
       arr.push(dt);
   }
-  return arr;
+    return arr;
+
+ // return arr;
 };
 
 router.get("/get-reserved-days",(async(req,res)=>{
@@ -4976,7 +5177,7 @@ router.get("/blocked-booked-dates",async(req,res)=>{
       }
       setTimeout(()=>{
           all_dates.push(arr)
-      },60)
+      },40)
     })
   }
   setTimeout(()=>{
@@ -5000,11 +5201,33 @@ router.get("/roomsAvailable",async(req,res)=>{
   const datesArr=[]
   apps.map(async(a)=>{
     const booked=await BookedDate.find({$and:[{"application_id":a._id}]})
-   //const min= booked.reduce(function (a, b) { return new Date(a.date.split(" ")[3],monthnum[months.indexOf(a.date.split(" ")[1])-1],a.day.split(" ")[2]) < new Date(b.date.split(" ")[3],monthnum[months.indexOf(b.date.split(" ")[1])-1],b.date.split(" ")[2])  ? a : b; }); 
+    var check
+  const otherApps=booked.map(async(b)=>{
+      var bdate=await BookedDate.find({$and:[{"date":b.date}]})
+      return new Promise((resolve,reject)=>{
+        if(bdate.length>1 && check==null){
+          check=false
+            bdate.map(async(bd)=>{
+              const otherApp=await Application.findOne({$and:[{"_id":bd.application_id}]})
+             // console.log(otherApp.stay_start_date)
+             setTimeout(()=>{
+              resolve(otherApp)
+
+             },200)
+            })
+        }
+
+      })
+      
+  })  
+ // console.log("OTHERAPPS:",otherApps)
+ 
+  
+ //const min= booked.reduce(function (a, b) { return new Date(a.date.split(" ")[3],monthnum[months.indexOf(a.date.split(" ")[1])-1],a.day.split(" ")[2]) < new Date(b.date.split(" ")[3],monthnum[months.indexOf(b.date.split(" ")[1])-1],b.date.split(" ")[2])  ? a : b; }); 
    const max= booked.reduce(function (a, b) { return new Date(a.date.split(" ")[3],monthnum[months.indexOf(a.date.split(" ")[1])-1],a.date.split(" ")[2]) < new Date(b.date.split(" ")[3],monthnum[months.indexOf(b.date.split(" ")[1])-1],b.date.split(" ")[2])  ? a : b; }); 
    const min= booked.reduce(function (a, b) { return new Date(a.date.split(" ")[3],monthnum[months.indexOf(a.date.split(" ")[1])-1],a.date.split(" ")[2]) > new Date(b.date.split(" ")[3],monthnum[months.indexOf(b.date.split(" ")[1])-1],b.date.split(" ")[2])  ? a : b; }); 
-    console.log(min)
-   console.log(max)
+    //console.log(min)
+   //console.log(max)
    var mi=min.date.split(" ")
    var ma=max.date.split(" ")
    mi=new Date(mi[3],monthnum[months.indexOf(mi[1])-1],mi[2])
@@ -5022,11 +5245,11 @@ router.get("/roomsAvailable",async(req,res)=>{
 
   setTimeout(()=>{
     axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roomsAvailableString").then((response)=>{
-      console.log(response.data)
+      //console.log(response.data)
       res.json({success:true,room_dates:dates,room_string_dates:response.data.string_dates,room_string_strings:response.data.string_string_dates})
 
     })
-  },500)
+  },300)
  
 })
 async function sort(arr){
@@ -5051,7 +5274,7 @@ async function sort2(arr,l,r,arr2,i){
   }
   setTimeout(()=>{
     return arr
-  ,2000})
+  ,1200})
 }
 
 function merge(arr,l,m,r,index,arr2){

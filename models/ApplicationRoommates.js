@@ -8,6 +8,12 @@ startDate:{
 endDate:{
   type:Date
 },
+startDateString:{
+  type:String
+},
+endDateString:{
+  type:String
+},
 roommates:{
   type:Array
 }

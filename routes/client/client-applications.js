@@ -127,6 +127,7 @@ router.get("/getActiveStatus3/:id",async(req,res)=>{
             const startDate=new Date(st[3],monthnum[months.indexOf(st[1])-1],st[2])
             const endDate=new Date(et[3],monthnum[months.indexOf(et[1])-1],et[2])
             var activeDate=new Date(startDate)
+            endDate.setDate(endDate.getDate()+1)
            // var nextnext=activeDate.setDate(cDate.getDate()+1)
            // activeDate=new Date(nextnext)
             console.log("today:"+activeDate.toString().substring(0,15))
