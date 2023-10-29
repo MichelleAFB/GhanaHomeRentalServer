@@ -744,7 +744,7 @@ router.get("/booked-date/:id",async(req,res)=>{
   const apps=await BookedDate.find({$and:[{"application_id":req.params.id}]})
   console.log("apps",apps)
   if(apps.length==0){
-  axios.get(`http://localhost:3012/admin-applications/allBookingDatesForApplication/${id.toString()}`).then(async(response)=>{
+  axios.get(`https://ghanahomestayserver.onrender.com/admin-applications/allBookingDatesForApplication/${id.toString()}`).then(async(response)=>{
    // console.log(response)
   const data=response.data
     const startBuffer=await BookedDate.findOne({$and:[{"application_id":req.params.id},{"date":data.startBuffer}]})
@@ -2643,6 +2643,20 @@ router.post("/check-and-create-roommate-group/:id",async(req,res)=>{
           const updateGroup=await ApplicationRoommate.updateOne({$and:[{"_id":groupExist[0]._id}]},{
             $set:{"startDate":min,"endDate":max,"startDateString":min.toString().substring(0,15),"endDateString":max.toString().substring(0,15)}
           })
+          if(app.roomOne){ const updateGroupRoomOne=await ApplicationRoommate.updateOne({$and:[{"_id":groupExist[0]._id}]},{
+            $set:{"roomOne":app.roomOne}
+          })
+        }
+        if(app.roomTwo){ const updateGroupRoomTwo=await ApplicationRoommate.updateOne({$and:[{"_id":groupExist[0]._id}]},{
+          $set:{"roomTwo":app.roomTwo}
+        })
+      }
+      if(app.roomThree){ const updateGroupRoomThree=await ApplicationRoommate.updateOne({$and:[{"_id":groupExist[0]._id}]},{
+        $set:{"roomThree":app.roomThree}
+      })
+    }
+      
+
           const updateGroupRooms=await ApplicationRoommate.updateOne({$and:[{"_id":groupExist[0]._id}]},{
             $push:{"roommates":app}
           })
@@ -2659,6 +2673,31 @@ router.post("/check-and-create-roommate-group/:id",async(req,res)=>{
     res.json({success:false,message:"application "+ req.params.id+" does not exist."})
 
   }
+})
+
+
+router.get("/addRooms",async(req,res)=>{
+  const groups=await ApplicationRoommate.find({})
+  groups.map(async(g)=>{
+    const rooms=g.roommates
+    rooms.map(async(r)=>{
+      if(r.roomOne){
+        const update=await ApplicationRoommate.updateOne({$and:[{"_id":g._id}]},{
+          $set:{"roomOne":r.roomOne}
+        })
+      }
+      if(r.roomTwo){
+        const update=await ApplicationRoommate.updateOne({$and:[{"_id":g._id}]},{
+          $set:{"roomTwo":r.roomTwo}
+        })
+      }
+      if(r.roomThree){
+        const update=await ApplicationRoommate.updateOne({$and:[{"_id":g._id}]},{
+          $set:{"roomThree":r.roomThree}
+        })
+      }
+    })
+  })
 })
 
 router.get("/blocked-fullsuite",async(req,res)=>{
@@ -4758,9 +4797,10 @@ router.get("/format-find-dates",(req,res)=>{
         })
         setTimeout(()=>{
           console.log("here")
-          axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roomsAvailable").then((response2)=>{
+          axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roomsAvailable").then(async(response2)=>{
           var goodStrings=response2.data.room_string_dates.toString() instanceof String? response2.data.room_string_dates: response2.data.room_string_dates[0]
           const arr=[]
+          const groups=await ApplicationRoommate.find({})
 
           
 

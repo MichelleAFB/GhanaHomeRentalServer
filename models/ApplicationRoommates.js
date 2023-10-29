@@ -16,6 +16,18 @@ endDateString:{
 },
 roommates:{
   type:Array
+},
+roomOne:{
+  type:Boolean,
+  default:false
+},
+roomTwo:{
+  type:Boolean,
+  default:false
+},
+roomThree:{
+  type:Boolean,
+  default:false
 }
 
 })
