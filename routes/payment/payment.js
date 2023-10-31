@@ -140,7 +140,7 @@ console.log("\n\n\n"+req.params.id+"\n\n\n")
         })
        try{ 
         console.log(session.url)
-        return session.url.toString()
+        return session
        }catch(error){
           console.log(error)
           reject(error)
@@ -172,7 +172,7 @@ console.log("\n\n\n"+req.params.id+"\n\n\n")
       )
       console.log(updated)
       if(updated.acknowledged==true){
-        res.json({success:true,url:response,updated:updated})
+        res.json({success:true,url:response.url,updated:updated,session:response})
       }
     }else{
         res.json({success:false,message:"error",updated:updated})

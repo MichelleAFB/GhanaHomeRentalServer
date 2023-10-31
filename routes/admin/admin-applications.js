@@ -1119,12 +1119,12 @@ router.get("/assign-roommate-group",async(req,res)=>{
         endDate:new Date(max),
         roommates:[a]
       })
-      var save=await newGroups.save()
+      //var save=await newGroups.save()
       setTimeout(async()=>{
         a.roommates.map(async(r)=>{
           arr.push(r._id)
           const add=await ApplicationRoommate.updateOne({$and:[{"_id":save._id}]},{
-            $push:{"roommates":r}
+           $push:{"roommates":r}
           })
           console.log(add)
           const updateR=await Application.updateOne({$and:[{"_id":r._d}]},{
@@ -2960,6 +2960,13 @@ router.get("/allBookingDatesForApplication/:id",async(req,res)=>{
 
 })
 
+router.get("/fix-booker",async(req,res)=>{
+  const update=await BookedDate.updateMany({and:[{"application_id":"6535cf52ea66a0c23f638e35"}]},{
+    $set:{"fullSuite":false}
+  })
+  console.log(update)
+})
+
 router.get("/allBookingDatesForApplication/:startDate/:endDate",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
 
@@ -3841,6 +3848,7 @@ router.get("/set-roommate/:id/:roommate",async(req,res)=>{
     res.json({success:true,app:app})
   })
 })
+
 router.get("/roommate-diagram",async(req,res)=>{
   const rooms=[]
   axios.get("https://ghanahomestayserver.onrender.com/admin-applications/format-find-dates").then(async(response)=>{
@@ -3910,7 +3918,35 @@ router.get("/roommate-diagram",async(req,res)=>{
   */
 
 })
+router.get("/roommate-diagram-2",async(req,res)=>{
+  const rooms=await ApplicationRoommate.find({})
+  const arr=[]
+  rooms.map(async(r)=>{
+    const roommates={
+      roommate:null,
+      roommate1:null,
+      roommate2:null
+    }
+    r.roommates.map((p)=>{
+      if(p.roomOne){
+        roommates.roommate=p
+      }
+      if(p.roomTwo){
+        roommates.roommate1=p
+      }
+      if(p.roomThree){
+        roommates.roommate2=p
+      }
+    })
+    setTimeout(()=>{
+      arr.push({startDate:r.startDate,endDate:r.endDate,roommate:roommates.roommate,roommate1:roommates.roommate1,roommate2:roommates.roommate2})
+    },150)
+  })
 
+  setTimeout(()=>{
+    res.json({success:true,rooms:arr})
+  },1000)
+})
 router.get("/generate-groups",async(req,res)=>{
   var months= ["Jan","Feb","Mar","Apr","May","Jun","Jul",
   "Aug","Sep","Oct","Nov","Dec"];
@@ -4625,11 +4661,6 @@ router.get("/roommates-",(req,res)=>{
       }
 
     }
-
-    
-    
-       
-       
    
      dates.push({min:start,max:end,applications:a.applications})
     
@@ -4678,8 +4709,6 @@ router.get("/set-roommates-group",(async(req,res)=>{
       console.log(add)
     }
     })
-    
-  
     const g=await ApplicationRoommate.find({$and:[{"_id":group._id}]})
     groups.push(g)
   }
@@ -4689,7 +4718,6 @@ router.get("/set-roommates-group",(async(req,res)=>{
      },700)
    })
   } 
-
 ))
 
 router.get("/set-roommates",async(req,res)=>{
@@ -4699,6 +4727,7 @@ axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roommates
   
   apps.map(async(d)=>{
     const datess=d.applications
+    try{
     datess.map(async(a)=>{
 
       if(a!=null){
@@ -4731,6 +4760,9 @@ axios.get("https://ghanahomestayserver.onrender.com/admin-applications/roommates
     }
 
     })
+  }catch(err){
+    console.log(err)
+  }
   
     
   })

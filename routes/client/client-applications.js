@@ -359,12 +359,8 @@ router.get("/activeApplications/:id",async(req,res)=>{
     }
   }
 })
-router.get("/fix-booked",async(req,res)=>{
-  const update=await Application.updateOne({"_id":"64da6f37b494001dbf940c7e"},{
-    $set:{"roommate2":true}
-  })
-  res.json({update})
-})
+
+
 router.post("/create-application",async(req,res)=>{
   res.setHeader("Access-Control-Allow-Origin", "*");
   console.log(req.body)
